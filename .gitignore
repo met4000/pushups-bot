@@ -1,3 +1,15 @@
+# Local gitignore:
+
+# Special config file
+_config.json
+
+# Participant data
+_data.json
+
+
+
+# Node gitignore:
+
 # Logs
 logs
 *.log
