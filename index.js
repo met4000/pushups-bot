@@ -47,7 +47,7 @@ function logMessageVerbose(type, msg, processed) {
 };
 
 function channelmsg(msg, processed) {
-  if (!_config.channelID.includes(msg.channel.id)) return;
+  if (!_config.channelID.includes(parseInt(msg.channel.id))) return;
   
   if (config.verbose) logMessageVerbose("text", msg, processed);
   
