@@ -3,15 +3,23 @@ const client = new Discord.Client();
 
 const util = require("./util");
 const db = require("./db");
+const commandLoader = require("./commands/commandLoader");
 
 const config = require("./config.json");
 var _config = require("./_config.json");
 if (!Array.isArray(_config.channelID)) _config.channelID = [_config.channelID];
 
+var commands = {};
+function getCommandByName(source, name) { return source[name]; }
 var commandRegexp;
 
 
 // Startup
+util.Info(suffix => `Load${suffix} commands`, () => {
+  util.Info(suffix => `Load${suffix} channel commands`, () => commands.channel = commandLoader.Load(require("./commands/channel")), false);
+  util.Info(suffix => `Load${suffix} direct commands`, () => commands.direct = commandLoader.Load(require("./commands/direct")), false);
+});
+
 // util.Info("DB startup", () => {
 db.Init();
 if (config.backup) db.Backup();
@@ -53,8 +61,12 @@ function channelmsg(msg, processed) {
   if (!_config.channelID.includes(parseInt(msg.channel.id))) return;
   
   if (config.verbose) logMessageVerbose("channel", msg, processed);
-  
-  // process channel commands
+
+  var command = getCommandByName(commands.channel, processed.command);
+  if (command === undefined) { return -1; } // TODO
+
+  var ret = command.exec({ args: processed.args, msg: msg });
+  if (ret) msg.reply(ret.reply);
 }
 
 function directmsg(msg, processed) {
