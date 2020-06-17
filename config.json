@@ -1,5 +1,8 @@
 {
+  "backup": true,
   "prefix": "!",
-  "verbose": true,
-  "backup": true
+  "databases": {
+    "participants": "participants"
+  },
+  "verbose": true
 }

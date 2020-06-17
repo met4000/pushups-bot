@@ -22,8 +22,8 @@ util.Info(suffix => `Load${suffix} commands`, () => {
 
 // util.Info("DB startup", () => {
 db.Init();
-if (config.backup) db.Backup();
-db.Load();
+if (config.backup) db.Backup(config.databases.participants);
+db.Load(config.databases.participants);
 // });
 
 
@@ -65,14 +65,22 @@ function channelmsg(msg, processed) {
   var command = getCommandByName(commands.channel, processed.command);
   if (command === undefined) { return -1; } // TODO
 
+  msg.channel.startTyping();
   var ret = command.exec({ args: processed.args, msg: msg });
   if (ret) msg.reply(ret.reply);
+  msg.channel.stopTyping(true);
 }
 
 function directmsg(msg, processed) {
   if (config.verbose) logMessageVerbose("direct", msg, processed);
 
-  // process dm commands
+  var command = getCommandByName(commands.direct, processed.command);
+  if (command === undefined) { return -1; } // TODO
+
+  msg.channel.startTyping();
+  var ret = command.exec({ args: processed.args, msg: msg });
+  if (ret) msg.channel.send(ret.reply);
+  msg.channel.stopTyping(true);
 }
 
 

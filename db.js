@@ -32,7 +32,7 @@ function filenameByDBName(dbname) {
 
 function filepathByDBName(dbname) {
   if (!dbname) throw new Error("FATAL ERROR: No name passed.");
-  return `./${filenameByDBName(dbname)}`;
+  return `./db/${filenameByDBName(dbname)}`;
 }
 
 function mkdirSyncFullpath(path) {
@@ -46,7 +46,7 @@ function mkdirSyncFullpath(path) {
 
 
 // Actions (i.e. changes to the database)
-function load(dbname = "_data", force = false) {
+function load(dbname, force = false) {
   if (!Array.isArray(dbname)) dbname = [dbname];
   
   util.Info(suffix => `Load${suffix} databases`, () => {
@@ -74,20 +74,22 @@ function save(dbname = "*") {
   }
 
   var ca = 0, cs = 0, fail;
-  db.forEach(_dbname => {
-    ca++;
-    if (!isLoaded(_dbname)) { console.error(`Error: Unable to save database '${_dbname}': No data found`); return; }
+  util.Info(suffix => `Sav${suffix} databases`, () => {
+    db.forEach(_dbname => {
+      ca++;
+      if (!isLoaded(_dbname)) { console.error(`Error: Unable to save database '${_dbname}': No data found`); return; }
 
-    fail = false;
-    console.info(`Info: Saving database '${_dbname}'...`);
-    try { fs.writeFileSync(filepathByDBName(_dbname), JSON.stringify(internal[_dbname].json, null, 2)); } catch (err) { fail = true; console.error(`Error: Error while saving database ${err}`); }
-    if (!fail) console.info(`Info: Saved database '${_dbname}'`);
-    cs++;
+      fail = false;
+      console.info(`Info: Saving database '${_dbname}'...`);
+      try { fs.writeFileSync(filepathByDBName(_dbname), JSON.stringify(internal[_dbname].json, null, 2)); } catch (err) { fail = true; console.error(`Error: Error while saving database ${err}`); }
+      if (!fail) console.info(`Info: Saved database '${_dbname}'`);
+      cs++;
+    });
   });
   return [ca, cs];
 }
 
-function backup(dbname = "_data", save = false) {
+function backup(dbname, save = false) {
   if (!Array.isArray(dbname)) dbname = [dbname];
 
   console.info("Info: Starting backup...");
@@ -105,9 +107,9 @@ function backup(dbname = "_data", save = false) {
 
   	dbname.forEach(_dbname => {
       util.Info(suffix => `Back${suffix} up ${_dbname}`, () => {
-        var p = `./backups/${_dbname}/${dtstring}`;
+        var p = `./backups/${_dbname}/${dtstring}`, file = filepathByDBName(_dbname);
         mkdirSyncFullpath(p);
-        fs.copyFileSync(filepathByDBName(_dbname), `${p}/${filenameByDBName(_dbname)}`, fs.constants.COPYFILE_EXCL);
+        fs.copyFileSync(file, `${p}/${file}`, fs.constants.COPYFILE_EXCL);
       }, false);
     });
   });
@@ -120,17 +122,17 @@ function backup(dbname = "_data", save = false) {
  * Selects data from the named database(s).
  *
  * @param {*} sel The key (or array of keys) to retrieve the value(s) for. "*" is wildcard.
+ * @param {string} [dbname] The name of the database(s).
  * @param {boolean} [condition=(v, db) => true] The condition to determine if a row should be included. Parameters are the row values and the database name.
- * @param {string} [dbname="_data"] The name of the database(s).
  * @returns The selected data. Either a single value, or an object with the requested keys/values.
  */
-function select(sel, condition = (v, db) => true, dbname = "_data") {
+function select(sel, dbname, condition = (v, db) => true) {
   var wildcard = sel === "*", multimode = Array.isArray(sel);
   if (!Array.isArray(dbname)) dbname = [dbname];
 
   var l = [];
   dbname.forEach(_dbname => {
-    if (!isLoaded(_dbname)) { console.error(`Error: Unable to select from database '${_dbname}': Database not found`); return -1; }
+    if (!isLoaded(_dbname)) { console.error(`Error: Unable to select from database '${_dbname}': Database not loaded`); return -1; }
 
     Object.keys(internal[_dbname].json).forEach(_key => {
       var _values = internal[_dbname].json[_key];
@@ -154,16 +156,31 @@ function select(sel, condition = (v, db) => true, dbname = "_data") {
   return l;
 }
 
-function insert(el, dbname = "_data") {
-	if (!isLoaded(dbname)) { console.error(`Error: Unable to insert into database '${dbname}': Database not found`); return -1; }
+function insert(el, dbname) { // TODO: no error checking on type of `el`
+  if (!Array.isArray(dbname)) dbname = [dbname];
+  
+  var ia = 0, is = 0;
+  dbname.forEach(_dbname => {
+    if (!isLoaded(_dbname)) { console.error(`Error: Unable to insert into database '${_dbname}': Database not loaded`); return -1; }
+
+    Object.keys(el).forEach(_key => {
+      ia++;
+      if (internal[_dbname].json[_key] !== undefined) { console.error(`Error: Unable to insert row '${_key}' into database '${_dbname}': Row already exists`); return -1; }
+      
+      internal[_dbname].json[_key] = el[_key];
+      is++;
+    });
+  });
+
+  return [ia, is];
 }
 
-function update(el, condition = (v, db) => false, dbname = "_data") {
+function update(el, dbname, condition = (v, db) => false) {
   if (!Array.isArray(dbname)) dbname = [dbname];
 
   var rc = 0, ec = 0;
   dbname.forEach(_dbname => {
-    if (!isLoaded(_dbname)) { console.error(`Error: Unable to update database '${_dbname}': Database not found`); return -1; }
+    if (!isLoaded(_dbname)) { console.error(`Error: Unable to update database '${_dbname}': Database not loaded`); return -1; }
 
     Object.keys(internal[_dbname].json).forEach(_key => {
       var _values = internal[_dbname].json[_key];
@@ -181,8 +198,8 @@ function update(el, condition = (v, db) => false, dbname = "_data") {
   return [rc, ec];
 }
 
-function del(el, condition = (v, db) => false, dbname = "_data") {
-  if (!isLoaded(dbname)) { console.error(`Error: Unable to delete from database '${dbname}': Database not found`); return -1; }
+function del(el, dbname, condition = (v, db) => false) {
+  if (!isLoaded(dbname)) { console.error(`Error: Unable to delete from database '${dbname}': Database not loaded`); return -1; }
 
 	// TODO: implement
 }

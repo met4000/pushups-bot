@@ -3,8 +3,8 @@
 # Special config file
 _config.json
 
-# Participant data
-_data.json
+# DBs
+db/
 
 # DB Backups
 backups/
