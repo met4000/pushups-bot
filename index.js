@@ -12,7 +12,7 @@ var commandRegexp;
 
 // Startup
 db.Init();
-db.Backup();
+if (config.backup) db.Backup();
 db.Load();
 
 

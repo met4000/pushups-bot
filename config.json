@@ -1,4 +1,5 @@
 {
   "prefix": "!",
-  "verbose": true
+  "verbose": true,
+  "backup": true
 }
