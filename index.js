@@ -1,6 +1,7 @@
 const Discord = require("discord.js");
 const client = new Discord.Client();
 
+const util = require("./util");
 const db = require("./db");
 
 const config = require("./config.json");
@@ -11,9 +12,11 @@ var commandRegexp;
 
 
 // Startup
+// util.Info("DB startup", () => {
 db.Init();
 if (config.backup) db.Backup();
 db.Load();
+// });
 
 
 // Discord Behaviours
@@ -23,7 +26,7 @@ client.on("ready", () => {
 });
 
 client.on("error", e => {
-  console.error(`Unexpected error: ${e}.`);
+  console.error(`Unexpected error: ${e}`);
 });
 
 client.on("message", msg => {
@@ -49,7 +52,7 @@ function logMessageVerbose(type, msg, processed) {
 function channelmsg(msg, processed) {
   if (!_config.channelID.includes(parseInt(msg.channel.id))) return;
   
-  if (config.verbose) logMessageVerbose("text", msg, processed);
+  if (config.verbose) logMessageVerbose("channel", msg, processed);
   
   // process channel commands
 }

@@ -1,5 +1,7 @@
 const fs = require("fs");
 
+const util = require("./util");
+
 module.exports = {
   // Events (i.e. changes to the programme)
   Init: function () {},
@@ -24,12 +26,12 @@ function isLoaded(dbname) {
 }
 
 function filenameByDBName(dbname) {
-  if (!dbname) throw new Error("Fatal Error: No name passed.");
+  if (!dbname) throw new Error("FATAL ERROR: No name passed.");
   return `${dbname}.json`;
 }
 
 function filepathByDBName(dbname) {
-  if (!dbname) throw new Error("Fatal Error: No name passed.");
+  if (!dbname) throw new Error("FATAL ERROR: No name passed.");
   return `./${filenameByDBName(dbname)}`;
 }
 
@@ -47,16 +49,18 @@ function mkdirSyncFullpath(path) {
 function load(dbname = "_data", force = false) {
   if (!Array.isArray(dbname)) dbname = [dbname];
   
-  dbname.forEach(_dbname => {
-    // if (!force) if (isLoaded(dbname)) save(dbname);
+  util.Info(suffix => `Load${suffix} databases`, () => {
+    dbname.forEach(_dbname => {
+      // if (!force) if (isLoaded(dbname)) save(dbname);
 
-    delete internal[_dbname];
+      util.Info(suffix => `Load${suffix} database '${_dbname}'`, () => {
+        delete internal[_dbname];
 
-  	internal[_dbname] = {
-      json: require(filepathByDBName(_dbname)),
-    }
-
-    console.info(`Info: Loaded database '${_dbname}'`);
+      	internal[_dbname] = {
+          json: require(filepathByDBName(_dbname)),
+        }
+      }, false);
+    });
   });
 }
 
@@ -88,25 +92,25 @@ function backup(dbname = "_data", save = false) {
 
   console.info("Info: Starting backup...");
 
-  if (save) save(dbname);
+  util.Info("DB Backup", () => {
+    if (save) save(dbname);
 
-  // formatted date-time string suitable for directory names (format: `dd.mm.yyyy.hhmm.ss.fff`)
-  var d = new Date(), dtstring = d.getUTCDate().toString().padStart(2, "0") + "." +
-                                (d.getUTCMonth()+1).toString().padStart(2, "0") + "." +
-                                 d.getUTCFullYear().toString().padStart(4, "0") + "." + 
-                                 d.getUTCHours().toString().padStart(2, "0") + d.getUTCMinutes().toString().padStart(2, "0") + "." +
-                                 d.getUTCSeconds().toString().padStart(2, "0") + "." +
-                                 d.getUTCMilliseconds().toString().padStart(2, "0");
+    // formatted date-time string suitable for directory names (format: `dd.mm.yyyy.hhmm.ss.fff`)
+    var d = new Date(), dtstring = d.getUTCDate().toString().padStart(2, "0") + "." +
+                                  (d.getUTCMonth()+1).toString().padStart(2, "0") + "." +
+                                   d.getUTCFullYear().toString().padStart(4, "0") + "." + 
+                                   d.getUTCHours().toString().padStart(2, "0") + d.getUTCMinutes().toString().padStart(2, "0") + "." +
+                                   d.getUTCSeconds().toString().padStart(2, "0") + "." +
+                                   d.getUTCMilliseconds().toString().padStart(2, "0");
 
-	dbname.forEach(_dbname => {
-    console.info(`Info: Backing up ${_dbname}...`);
-    var p = `./backups/${_dbname}/${dtstring}`;
-    mkdirSyncFullpath(p);
-    fs.copyFileSync(filepathByDBName(_dbname), `${p}/${filenameByDBName(_dbname)}`, fs.constants.COPYFILE_EXCL);
-    console.info(`Info: Backed up ${_dbname}`);
+  	dbname.forEach(_dbname => {
+      util.Info(suffix => `Back${suffix} up ${_dbname}`, () => {
+        var p = `./backups/${_dbname}/${dtstring}`;
+        mkdirSyncFullpath(p);
+        fs.copyFileSync(filepathByDBName(_dbname), `${p}/${filenameByDBName(_dbname)}`, fs.constants.COPYFILE_EXCL);
+      }, false);
+    });
   });
-
-  console.info("Info: Backup complete\n");
 }
 
 
