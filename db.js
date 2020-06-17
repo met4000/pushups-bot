@@ -23,9 +23,23 @@ function isLoaded(dbname) {
   return internal[dbname] !== undefined;
 }
 
-function fileNameByDBName(dbname) {
+function filenameByDBName(dbname) {
   if (!dbname) throw new Error("Fatal Error: No name passed.");
-  return `./${dbname}.json`;
+  return `${dbname}.json`;
+}
+
+function filepathByDBName(dbname) {
+  if (!dbname) throw new Error("Fatal Error: No name passed.");
+  return `./${filenameByDBName(dbname)}`;
+}
+
+function mkdirSyncFullpath(path) {
+  path = path.split(/[\\\/]+/);
+
+  path.forEach((v, i, a) => {
+    var p = a.slice(0, i + 1).join("/");
+    if (!fs.existsSync(p)) fs.mkdirSync(p);
+  });
 }
 
 
@@ -39,7 +53,7 @@ function load(dbname = "_data", force = false) {
     delete internal[_dbname];
 
   	internal[_dbname] = {
-      json: require(fileNameByDBName(_dbname)),
+      json: require(filepathByDBName(_dbname)),
     }
 
     console.info(`Info: Loaded database '${_dbname}'`);
@@ -55,22 +69,44 @@ function save(dbname = "*") {
     if (!Array.isArray(dbname)) db = [dbname];
   }
 
-  var ca = 0, cs = 0;
+  var ca = 0, cs = 0, fail;
   db.forEach(_dbname => {
     ca++;
     if (!isLoaded(_dbname)) { console.error(`Error: Unable to save database '${_dbname}': No data found`); return; }
 
-    fs.writeFile(fileNameByDBName(_dbname), JSON.stringify(internal[_dbname].json, null, 2), (err) => console.error);
+    fail = false;
     console.info(`Info: Saving database '${_dbname}'...`);
+    try { fs.writeFileSync(filepathByDBName(_dbname), JSON.stringify(internal[_dbname].json, null, 2)); } catch (err) { fail = true; console.error(`Error: Error while saving database ${err}`); }
+    if (!fail) console.info(`Info: Saved database '${_dbname}'`);
     cs++;
   });
   return [ca, cs];
 }
 
 function backup(dbname = "_data", save = false) {
+  if (!Array.isArray(dbname)) dbname = [dbname];
+
+  console.info("Info: Starting backup...");
+
   if (save) save(dbname);
 
-	// TODO: implement
+  // formatted date-time string suitable for directory names (format: `dd.mm.yyyy.hhmm.ss.fff`)
+  var d = new Date(), dtstring = d.getUTCDate().toString().padStart(2, "0") + "." +
+                                (d.getUTCMonth()+1).toString().padStart(2, "0") + "." +
+                                 d.getUTCFullYear().toString().padStart(4, "0") + "." + 
+                                 d.getUTCHours().toString().padStart(2, "0") + d.getUTCMinutes().toString().padStart(2, "0") + "." +
+                                 d.getUTCSeconds().toString().padStart(2, "0") + "." +
+                                 d.getUTCMilliseconds().toString().padStart(2, "0");
+
+	dbname.forEach(_dbname => {
+    console.info(`Info: Backing up ${_dbname}...`);
+    var p = `./backups/${_dbname}/${dtstring}`;
+    mkdirSyncFullpath(p);
+    fs.copyFileSync(filepathByDBName(_dbname), `${p}/${filenameByDBName(_dbname)}`, fs.constants.COPYFILE_EXCL);
+    console.info(`Info: Backed up ${_dbname}`);
+  });
+
+  console.info("Info: Backup complete\n");
 }
 
 

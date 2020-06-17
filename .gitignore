@@ -6,6 +6,9 @@ _config.json
 # Participant data
 _data.json
 
+# DB Backups
+backups/
+
 
 
 # Node gitignore:
