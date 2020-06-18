@@ -9,8 +9,9 @@ class Command {
   get name() { return this._name; }
   get aliasList() { return this._aliasList; }
   
-  exec(execObj) {
-    var ret = this._exec(execObj);  // execObj = { args: ..., msg: ... }
+  exec(execObj, db) {
+    // execObj = { args: ..., msg: ... }, scope = { db: ..., config: ... /* things passed for scope */ }
+    var ret = this._exec(execObj, db);
 
     if (ret === undefined) return;
     if (typeof ret !== "object") ret = { reply: ret };

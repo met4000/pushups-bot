@@ -66,7 +66,7 @@ function channelmsg(msg, processed) {
   if (command === undefined) { return -1; } // TODO
 
   msg.channel.startTyping();
-  var ret = command.exec({ args: processed.args, msg: msg });
+  var ret = command.exec({ args: processed.args, msg: msg }, { db: db, config: config });
   if (ret) msg.reply(ret.reply);
   msg.channel.stopTyping(true);
 }
@@ -78,7 +78,7 @@ function directmsg(msg, processed) {
   if (command === undefined) { return -1; } // TODO
 
   msg.channel.startTyping();
-  var ret = command.exec({ args: processed.args, msg: msg });
+  var ret = command.exec({ args: processed.args, msg: msg }, { db: db, config: config });
   if (ret) msg.channel.send(ret.reply);
   msg.channel.stopTyping(true);
 }
