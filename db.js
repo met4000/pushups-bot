@@ -124,7 +124,7 @@ function backup(dbname, save = false) {
  * @param {*} sel The key (or array of keys) to retrieve the value(s) for. "*" is wildcard.
  * @param {string} [dbname] The name of the database(s).
  * @param {boolean} [condition=(v, db) => true] The condition to determine if a row should be included. Parameters are the row values and the database name.
- * @returns The selected data. Either a single value, or an object with the requested keys/values.
+ * @returns A list containing the selected data. Either a single value, or an object with the requested keys/values.
  */
 function select(sel, dbname, condition = (v, db) => true) {
   var wildcard = sel === "*", multimode = Array.isArray(sel);
@@ -153,10 +153,10 @@ function select(sel, dbname, condition = (v, db) => true) {
       }
     });
   });
-  return l;
+  return util.DeRef(l);
 }
 
-function insert(el, dbname) { // TODO: no error checking on type of `el`
+function insert(el, dbname) { // TODO: add error checking on type of `el`
   if (!Array.isArray(dbname)) dbname = [dbname];
   
   var ia = 0, is = 0;
@@ -167,7 +167,7 @@ function insert(el, dbname) { // TODO: no error checking on type of `el`
       ia++;
       if (internal[_dbname].json[_key] !== undefined) { console.error(`Error: Unable to insert row '${_key}' into database '${_dbname}': Row already exists`); return -1; }
       
-      internal[_dbname].json[_key] = el[_key];
+      internal[_dbname].json[_key] = util.DeRef(el[_key]);
       is++;
     });
   });
@@ -189,7 +189,7 @@ function update(el, dbname, condition = (v, db) => false) {
         Object.keys(el).forEach(k => {
           if (_values[k] === undefined) { console.error(`Error: Unable to update key '${k}' of row '${_key}' in database '${_dbname}': Key not found`); return -1; }
 
-          _values[k] = el[k];
+          _values[k] = util.DeRef(el[k]);
           ec++;
         });
       }
