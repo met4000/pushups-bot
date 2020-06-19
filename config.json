@@ -2,7 +2,8 @@
   "backup": true,
   "prefix": "!",
   "databases": {
-    "participants": "participants"
+    "participants": "participants",
+    "submissions": "submissions"
   },
   "verbose": true
 }

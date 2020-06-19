@@ -21,9 +21,12 @@ util.Info(suffix => `Load${suffix} commands`, () => {
 });
 
 // util.Info("DB startup", () => {
+{
+  var dblist = [config.databases.participants, config.databases.submissions]
 db.Init();
-if (config.backup) db.Backup(config.databases.participants);
-db.Load(config.databases.participants);
+  if (config.backup) db.Backup(dblist);
+  db.Load(dblist);
+}
 // });
 
 
