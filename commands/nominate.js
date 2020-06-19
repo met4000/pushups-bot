@@ -1,3 +1,4 @@
+const Participant = require("../classes/Participant");
 const util = require("../util");
 
 module.exports = function (execObj, scope) {
@@ -17,21 +18,16 @@ module.exports = function (execObj, scope) {
   var stats = util.MapToObject(scope.db.Select("*", scope.config.databases.participants, v => [nominator.id, nominee.id].includes(v.id)), o => o.id);
 
   // check db results, and add peeps if they don't exist
-  var inserted = false;
-  if (stats[nominator.id] === undefined) {
-    inserted = true;
-    var newNominator = { id: nominator.id, displayName: nominator.displayName, points: 0, nominations: 0 }; // TODO: make a Participant class somewhere else, to make sure inserts don't go wrong
-    if (scope.config.verbose) console.info(`Info: Inserting new participant '${nominator.displayName} (${nominator.id})'`);
-    scope.db.Insert({ [nominator.id]: newNominator }, scope.config.databases.participants);
-    stats[nominator.id] = newNominator;
+  var inserted = [nominator, nominee].reduce((r, v) => {
+    if (stats[v.id] === undefined) {
+      var newParticipant = new Participant(v);
+      if (scope.config.verbose) console.info(`Info: Inserting new participant '${v.displayName} (${v.id})'`);
+      scope.db.Insert({ [v.id]: newParticipant }, scope.config.databases.participants);
+      stats[v.id] = newParticipant;
+      return true;
   }
-  if (stats[nominee.id] === undefined) {
-    inserted = true;
-    var newNominee = { id: nominee.id, displayName: nominee.displayName, points: 0, nominations: 0 }; // TODO: see above
-    if (scope.config.verbose) console.info(`Info: Inserting new participant '${nominee.displayName} (${nominee.id})'`);
-    scope.db.Insert({ [nominee.id]: newNominee }, scope.config.databases.participants);
-    stats[nominee.id] = newNominee;
-  }
+    return r;
+  });
 
   // check that the nominator has enough points
   if (stats[nominator.id].points <= 0) {
@@ -44,11 +40,10 @@ module.exports = function (execObj, scope) {
     [nominator.id]: { points: stats[nominator.id].points - 1 },
     [nominee.id]: { nominations: stats[nominee.id].nominations + 1 },
   };
-  scope.db.Update(newStats[nominator.id], scope.config.databases.participants, v => v.id === nominator.id);
-  scope.db.Update(newStats[nominee.id], scope.config.databases.participants, v => v.id === nominee.id);
+  [nominator, nominee].forEach(el => scope.db.Update(newStats[el.id], scope.config.databases.participants, v => v.id === el.id));
   scope.db.Save(scope.config.databases.participants);
   
-  var nominatorStatsText = `${nominator.displayName}: ${stats[nominator.id].points} -> ${newStats[nominator.id].points}`;
-  var nomineeStatsText = `${nominee.displayName}: ${stats[nominee.id].nominations} -> ${newStats[nominee.id].nominations}`;
-  return `<@!${nominee.id}> has been nominated! (${nominatorStatsText}, ${nomineeStatsText})`;
+  var nominatorStatsText = `${nominator.displayName}: ${stats[nominator.id].points} -> ${newStats[nominator.id].points} points`;
+  var nomineeStatsText = `${nominee.displayName}: ${stats[nominee.id].nominations} -> ${newStats[nominee.id].nominations} nominations`;
+  return `<@!${nominee.id}> has been nominated!\n(${nominatorStatsText}, ${nomineeStatsText})`;
 };

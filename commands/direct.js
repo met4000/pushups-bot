@@ -1,3 +1,3 @@
-const Command = require("./command");
+const Command = require("./Command");
 
 module.exports = {};

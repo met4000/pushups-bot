@@ -1,4 +1,4 @@
-class Command {
+module.exports = class Command {
   constructor(name, aliasList, exec) {
     this._name = name;
     if (!Array.isArray(aliasList)) aliasList = [aliasList];
@@ -18,6 +18,4 @@ class Command {
 
     return ret;
   }
-}
-
-module.exports = Command;
+};
