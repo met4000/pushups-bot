@@ -31,10 +31,12 @@ module.exports = function (execObj, scope) {
   if (claim < 1) return "`invalid claim data`";
   if (!isValidURL(url)) return "`invalid URL`";
 
-  // TODO: check url not already submitted
+  // check url not already submitted
+  var newSubmission = new Submission(user, url, claim);
+  var res = scope.db.Select("*", scope.config.databases.submissions, v => v.url === newSubmission.url);
+  if (res.length > 0) return `\`url already submitted by '${scope.db.Select("displayName", scope.config.databases.participants, v => v.userid === res[0].userid)}'\``;
 
   // add to DB
-  var newSubmission = new Submission(user, url, claim);
   scope.db.Insert({ [newSubmission.getID()]: newSubmission }, scope.config.databases.submissions);
   scope.db.Save(scope.config.databases.submissions);
 
