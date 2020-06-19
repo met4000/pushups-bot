@@ -26,7 +26,12 @@ module.exports = function (execObj, scope) {
     url = execObj.args[~i + 2];
   } else { throw new Error("FATAL ERROR: INVALID ARGUMENT COUNT PAST ARGUMENT COUNT CHECK"); }
 
-  // TODO: check claim and url data validity
+  // check claim and url data validity
+  if (!Number.isInteger(claim)) return "`invalid claim datatype`";
+  if (claim < 1) return "`invalid claim data`";
+  if (!isValidURL(url)) return "`invalid URL`";
+
+  // TODO: check url not already submitted
 
   // add to DB
   var newSubmission = new Submission(user, url, claim);
@@ -35,3 +40,15 @@ module.exports = function (execObj, scope) {
 
   return "Your submission has received. You will receive a notification once a moderator has reviewed it.";
 };
+
+function isValidURL(string) {
+  var url;
+
+  try {
+    url = new URL(string);
+  } catch (_) {
+    return false;  
+  }
+
+  return url.protocol === "http:" || url.protocol === "https:";
+}
