@@ -18,7 +18,7 @@ module.exports = function (execObj, scope) {
     claim = parseInt(execObj.args[0]);
     url = attachments.first().url;
   } else if (execObj.args.length === 2) {
-    var i = execObj.args.map(parseInt).findIndex(Number.isInteger);
+    var i = execObj.args.findIndex(v => Number.isInteger(parseInt(v)));
 
     if (i === -1) return "`could not find claim arg`"; // TODO: better feedback
 
