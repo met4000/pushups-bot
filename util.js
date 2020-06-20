@@ -1,8 +1,8 @@
 module.exports = {
-  Info: info,
-  MapArrayToObject: mapArrayToObject,
-  DeRef: deRef,
-  ObjectMap: objectMap,
+  info: info,
+  mapArrayToObject: mapArrayToObject,
+  deRef: deRef,
+  objectMap: objectMap,
 };
 
 function info(event, exec, nl = true) {

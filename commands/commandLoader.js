@@ -1,5 +1,5 @@
 module.exports = {
-  Load: load,
+  load: load,
 };
 
 function load(obj) {

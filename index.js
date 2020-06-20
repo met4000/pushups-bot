@@ -15,17 +15,17 @@ var commandRegexp;
 
 
 // Startup
-util.Info(suffix => `Load${suffix} commands`, () => {
-  util.Info(suffix => `Load${suffix} channel commands`, () => commands.channel = commandLoader.Load(require("./commands/channel")), false);
-  util.Info(suffix => `Load${suffix} direct commands`, () => commands.direct = commandLoader.Load(require("./commands/direct")), false);
+util.info(suffix => `Load${suffix} commands`, () => {
+  util.info(suffix => `Load${suffix} channel commands`, () => commands.channel = commandLoader.load(require("./commands/channel")), false);
+  util.info(suffix => `Load${suffix} direct commands`, () => commands.direct = commandLoader.load(require("./commands/direct")), false);
 });
 
-// util.Info("DB startup", () => {
+// util.info("DB startup", () => {
 {
   var dblist = [config.databases.participants, config.databases.submissions]
-db.Init();
-  if (config.backup) db.Backup(dblist);
-  db.Load(dblist);
+db.init();
+  if (config.backup) db.backup(dblist);
+  db.load(dblist);
 }
 // });
 

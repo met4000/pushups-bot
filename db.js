@@ -4,19 +4,19 @@ const util = require("./util");
 
 module.exports = {
   // Events (i.e. changes to the programme)
-  Init: function () {},
-  Close: function () { /* this.Save("*"); */ },
+  init: function () {},
+  close: function () { /* this.save("*"); */ },
 
   // Actions (i.e. changes to the database)
-  Load: load,
-  Save: save,
-  Backup: backup,
+  load: load,
+  save: save,
+  backup: backup,
 
   // Manipulators (i.e. changes to the data)
-  Select: select,
-  Insert: insert,
-  Update: update,
-  Delete: del,
+  select: select,
+  insert: insert,
+  update: update,
+  delete: del,
 };
 
 var internal = {};
@@ -49,11 +49,11 @@ function mkdirSyncFullpath(path) {
 function load(dbname, force = false) {
   if (!Array.isArray(dbname)) dbname = [dbname];
   
-  util.Info(suffix => `Load${suffix} databases`, () => {
+  util.info(suffix => `Load${suffix} databases`, () => {
     dbname.forEach(_dbname => {
       // if (!force) if (isLoaded(dbname)) save(dbname);
 
-      util.Info(suffix => `Load${suffix} database '${_dbname}'`, () => {
+      util.info(suffix => `Load${suffix} database '${_dbname}'`, () => {
         delete internal[_dbname];
 
       	internal[_dbname] = {
@@ -74,7 +74,7 @@ function save(dbname = "*") {
   }
 
   var ca = 0, cs = 0, fail;
-  util.Info(suffix => `Sav${suffix} databases`, () => {
+  util.info(suffix => `Sav${suffix} databases`, () => {
     db.forEach(_dbname => {
       ca++;
       if (!isLoaded(_dbname)) { console.error(`Error: Unable to save database '${_dbname}': No data found`); return; }
@@ -94,7 +94,7 @@ function backup(dbname, save = false) {
 
   console.info("Info: Starting backup...");
 
-  util.Info("DB Backup", () => {
+  util.info("DB Backup", () => {
     if (save) save(dbname);
 
     // formatted date-time string suitable for directory names (format: `dd.mm.yyyy.hhmm.ss.fff`)
@@ -106,7 +106,7 @@ function backup(dbname, save = false) {
                                    d.getUTCMilliseconds().toString().padStart(2, "0");
 
   	dbname.forEach(_dbname => {
-      util.Info(suffix => `Back${suffix} up ${_dbname}`, () => {
+      util.info(suffix => `Back${suffix} up ${_dbname}`, () => {
         var p = `./backups/${_dbname}/${dtstring}`, file = filepathByDBName(_dbname);
         mkdirSyncFullpath(p);
         fs.copyFileSync(file, `${p}/${file}`, fs.constants.COPYFILE_EXCL);
@@ -153,7 +153,7 @@ function select(sel, dbname, condition = (v, db) => true) {
       }
     });
   });
-  return util.DeRef(l);
+  return util.deRef(l);
 }
 
 function insert(el, dbname) { // TODO: add error checking on type of `el`
@@ -167,7 +167,7 @@ function insert(el, dbname) { // TODO: add error checking on type of `el`
       ia++;
       if (internal[_dbname].json[_key] !== undefined) { console.error(`Error: Unable to insert row '${_key}' into database '${_dbname}': Row already exists`); return -1; }
       
-      internal[_dbname].json[_key] = util.DeRef(el[_key]);
+      internal[_dbname].json[_key] = util.deRef(el[_key]);
       is++;
     });
   });
@@ -189,7 +189,7 @@ function update(el, dbname, condition = (v, db) => false) {
         Object.keys(el).forEach(k => {
           if (_values[k] === undefined) { console.error(`Error: Unable to update key '${k}' of row '${_key}' in database '${_dbname}': Key not found`); return -1; }
 
-          _values[k] = util.DeRef(el[k]);
+          _values[k] = util.deRef(el[k]);
           ec++;
         });
       }
