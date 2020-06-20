@@ -30,7 +30,7 @@ module.exports = function (execObj, scope) {
   });
 
   // check that the nominator has enough points
-  if (stats[pNominator.getID()].points <= 0) {
+  if (stats[pNominator.getID()].points < 1) {
     if (inserted) scope.db.Save(scope.config.databases.participants);
     return "`not enough points`"; // TODO: better feedback
   }
