@@ -9,9 +9,9 @@ module.exports = class Command {
   get name() { return this._name; }
   get aliasList() { return this._aliasList; }
   
-  exec(execObj, db) {
+  exec(execObj, scope) {
     // execObj = { args: ..., msg: ... }, scope = { db: ..., config: ... /* things passed for scope */ }
-    var ret = this._exec(execObj, db);
+    var ret = this._exec(execObj, scope);
 
     if (ret === undefined) return;
     if (typeof ret !== "object") ret = { reply: ret };
