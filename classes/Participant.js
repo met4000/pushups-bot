@@ -1,18 +1,15 @@
-const Discord = require("discord.js");
+const BaseUser = require("./BaseUser");
 
 const config = require("../config.json");
 
-module.exports = class Participant {
+module.exports = class Participant extends BaseUser {
   constructor(user) {
-    if (user instanceof Discord.GuildMember) {
-      this.userid = user.id;
-      this.displayName = user.displayName;
+    super(user);
 
+    if (BaseUser.isGuildMemberObject(user)) {
       this.pushups = 0;
       this.nominations = 0;
-    } else /* if (user instanceof Participant) */ {
-      this.userid = user.userid;
-      this.displayName = user.displayName;
+    } else {
       this.pushups = user.pushups;
       this.nominations = user.nominations;
     }
@@ -20,7 +17,4 @@ module.exports = class Participant {
 
   get points() { return Math.floor(this.pushups / config.pointCost); }
   set points(n) { this.pushups += (n - this.points) * config.pointCost; }
-
-  static getID(participant) { return participant.userid; }
-  getID() { return Participant.getID(this); }
 };
