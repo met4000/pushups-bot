@@ -1,5 +1,6 @@
 {
   "backup": true,
+  "pointCost": 30,
   "prefix": "!",
   "databases": {
     "participants": "participants",

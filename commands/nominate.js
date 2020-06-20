@@ -16,7 +16,7 @@ module.exports = function (execObj, scope) {
   // get stats 'n' stuff
   var nominator = execObj.msg.channel.members.get(execObj.msg.author.id); // GuildMember object, assuming in the channel, which they kinda should be to have sent a message there...
   var pNominator = new Participant(nominator), pNominee = new Participant(nominee);
-  var stats = util.MapArrayToObject(scope.db.Select("*", scope.config.databases.participants, v => [pNominator.getID(), pNominee.getID()].includes(Participant.getID(v))), o => Participant.getID(o));
+  var stats = util.MapArrayToObject(scope.db.Select("*", scope.config.databases.participants, v => [pNominator.getID(), pNominee.getID()].includes(Participant.getID(v))).map(v => new Participant(v)), o => o.getID());
 
   // check db results, and add peeps if they don't exist
   var inserted = [{ u: nominator, p: pNominator }, { u: nominee, p: pNominee }].reduce((r, v) => {
@@ -25,7 +25,7 @@ module.exports = function (execObj, scope) {
       scope.db.Insert({ [v.p.getID()]: v.p }, scope.config.databases.participants);
       stats[v.p.getID()] = v.p;
       return true;
-  }
+    }
     return r;
   });
 
@@ -36,10 +36,9 @@ module.exports = function (execObj, scope) {
   }
 
   // update stats
-  var newStats = {
-    [pNominator.getID()]: { points: stats[pNominator.getID()].points - 1 },
-    [pNominee.getID()]: { nominations: stats[pNominee.getID()].nominations + 1 },
-  };
+  var newStats = util.ObjectMap(stats, v => new Participant(v));
+  newStats[pNominator.getID()].points--;
+  newStats[pNominee.getID()].nominations++;
   [pNominator.getID(), pNominee.getID()].forEach(el => scope.db.Update(newStats[el], scope.config.databases.participants, v => v.userid === el));
   scope.db.Save(scope.config.databases.participants);
   

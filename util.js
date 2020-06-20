@@ -2,6 +2,7 @@ module.exports = {
   Info: info,
   MapArrayToObject: mapArrayToObject,
   DeRef: deRef,
+  ObjectMap: objectMap,
 };
 
 function info(event, exec, nl = true) {
@@ -26,3 +27,5 @@ function mapArrayToObject(array, generateKey) {
 }
 
 function deRef(o) { return JSON.parse(JSON.stringify(o)); } // dereference an object
+
+function objectMap(obj, fn) { return Object.fromEntries(Object.entries(obj).map(([k, v], i) => [k, fn(v, k, i)])); } // map, for objects
