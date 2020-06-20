@@ -46,5 +46,3 @@ module.exports = function (execObj, scope) {
   var nomineeStatsText = `${nominee.displayName}: ${stats[pNominee.getID()].nominations} -> ${newStats[pNominee.getID()].nominations} nominations`;
   return `<@!${nominee.id}> has been nominated!\n(${nominatorStatsText}, ${nomineeStatsText})`;
 };
-
-
