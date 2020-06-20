@@ -1,3 +1,3 @@
 const BaseUser = require("./BaseUser");
 
-module.exports = class Moderator {};
+module.exports = class Moderator extends BaseUser {};

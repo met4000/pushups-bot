@@ -1,9 +1,10 @@
 const Discord = require("discord.js");
-const client = new Discord.Client();
+global.client = new Discord.Client();
 
 const util = require("./util");
 const db = require("./db");
 const commandLoader = require("./commands/commandLoader");
+const commandMemory = require("./commands/commandMemory");
 
 const config = require("./config.json");
 var _config = require("./_config.json");
@@ -22,8 +23,8 @@ util.info(suffix => `Load${suffix} commands`, () => {
 
 // util.info("DB startup", () => {
 {
-  var dblist = [config.databases.participants, config.databases.submissions]
-db.init();
+  var dblist = [config.databases.participants, config.databases.submissions];
+  db.init();
   if (config.backup) db.backup(dblist);
   db.load(dblist);
 }
@@ -70,6 +71,7 @@ function channelmsg(msg, processed) {
 
   msg.channel.startTyping();
   var ret = command.exec({ args: processed.args, msg: msg }, { db: db, config: config });
+  if (ret.save) if (!commandMemory.add(ret.save)) console.error("Error: Failed to save to command memory"); // TODO: better feedback
   if (ret) msg.reply(ret.reply);
   msg.channel.stopTyping(true);
 }
@@ -82,6 +84,7 @@ function directmsg(msg, processed) {
 
   msg.channel.startTyping();
   var ret = command.exec({ args: processed.args, msg: msg }, { db: db, config: config });
+  if (ret.save) if (!commandMemory.add(ret.save)) console.error("Error: Failed to save to command memory"); // TODO: better feedback
   if (ret) msg.channel.send(ret.reply);
   msg.channel.stopTyping(true);
 }

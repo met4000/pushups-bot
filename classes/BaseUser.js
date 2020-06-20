@@ -1,4 +1,5 @@
 const Discord = require("discord.js");
+const deasync = require("deasync");
 
 module.exports = class BaseUser {
   constructor(user) {
@@ -15,4 +16,6 @@ module.exports = class BaseUser {
 
   static getID(user) { return user.userid; }
   getID() { return BaseUser.getID(this); }
+
+  getUserObject() { return deasync(global.client.users.fetch(this.userid)); }
 };

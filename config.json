@@ -1,10 +1,13 @@
 {
   "backup": true,
-  "pointCost": 30,
-  "prefix": "!",
+  "commandMemory": {
+    "defaultLifespan": 300e3
+  },
   "databases": {
     "participants": "participants",
     "submissions": "submissions"
   },
+  "pointCost": 30,
+  "prefix": "!",
   "verbose": true
 }
