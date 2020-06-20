@@ -56,6 +56,6 @@ function remove(memoryCommand) {
 
 function expire(memoryCommand) {
   if (config.verbose) console.log(`Info: MemoryCommand '${memoryCommand.getID()}' has expired.`);
-  memoryCommand.closer();
+  memoryCommand.closer(memoryCommand.execObj);
   remove(memoryCommand);
 }
