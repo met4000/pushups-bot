@@ -4,7 +4,7 @@ global.client = new Discord.Client();
 const util = require("./util");
 const db = require("./db");
 const commandLoader = require("./commands/commandLoader");
-const commandMemory = require("./commands/commandMemory");
+const commandSession = require("./commands/commandSession");
 
 const config = require("./config.json");
 var _config = require("./_config.json");
@@ -13,6 +13,11 @@ if (!Array.isArray(_config.channelID)) _config.channelID = [_config.channelID];
 var commands = {};
 function getCommandByName(source, name) { return source[name]; }
 var commandRegexp;
+function processCommandString(str) {
+  var processed = commandRegexp.exec(str);
+  if (!processed) return;
+  return { command: processed[1], args: processed[2] ? processed[2].split(" ") : [] };
+}
 
 
 // Startup
@@ -34,7 +39,7 @@ util.info(suffix => `Load${suffix} commands`, () => {
 // Discord Behaviours
 client.on("ready", () => {
   console.log(`Discord connected. Logged in as ${client.user.tag}.`);
-  commandRegexp = new RegExp(`^${config.prefix}(?:${client.user.username}|${client.user.username[0]}) ([^ ]+)(?: (.*))?$`);
+  commandRegexp = new RegExp(`^(?:${client.user.username}|${client.user.username[0]})${config.prefix}([^ ]+)(?: (.*))?$`);
 });
 
 client.on("error", e => {
@@ -44,22 +49,31 @@ client.on("error", e => {
 client.on("message", msg => {
   if (msg.author.bot) return;
 
-  var processed = commandRegexp.exec(msg.content);
-  if (!processed) return;
-  processed = { command: processed[1], args: processed[2] ? processed[2].split(" ") : [] };
+  var commandSessionID = commandSession.CommandSession.getIDByMessage(msg);
+  if (commandSession.includes(commandSessionID)) commandSessionCommandHandler(msg, commandSession.getByID(commandSessionID));
+
+  var processed = processCommandString(msg.content);
+  if (processed === undefined) return;
 
   if (msg.channel instanceof Discord.TextChannel) channelmsg(msg, processed);
   if (msg.channel instanceof Discord.DMChannel) directmsg(msg, processed);
 });
 
-function logMessageVerbose(type, msg, processed) {
+function logMessageVerbose(type, msg, data) {
   var msgString = JSON.stringify({
     author: msg.author.tag,
     channelID: msg.channel.id
-  }), processedString = JSON.stringify(processed);
+  }), dataString = JSON.stringify(data);
 
-  console.log(`${type}: ${msgString}, ${processedString}`);
+  console.log(`${type}: ${msgString}, ${dataString}`);
 };
+
+function commandSessionCommandHandler(msg, cs) {
+  if (config.verbose) logMessageVerbose("c_session", msg, "[CommandSession]");
+
+  cs.touch();
+  msg.reply("`TOUCHED`");
+}
 
 function channelmsg(msg, processed) {
   if (!_config.channelID.includes(parseInt(msg.channel.id))) return;
@@ -71,7 +85,7 @@ function channelmsg(msg, processed) {
 
   msg.channel.startTyping();
   var ret = command.exec({ args: processed.args, msg: msg }, { db: db, config: config });
-  if (ret.save) if (!commandMemory.add(ret.save)) console.error("Error: Failed to save to command memory"); // TODO: better feedback
+  if (ret.session) if (!commandSession.add(ret.session)) console.error("Error: Failed to save command session"); // TODO: better feedback
   if (ret) msg.reply(ret.reply);
   msg.channel.stopTyping(true);
 }
@@ -84,7 +98,7 @@ function directmsg(msg, processed) {
 
   msg.channel.startTyping();
   var ret = command.exec({ args: processed.args, msg: msg }, { db: db, config: config });
-  if (ret.save) if (!commandMemory.add(ret.save)) console.error("Error: Failed to save to command memory"); // TODO: better feedback
+  if (ret.session) if (!commandSession.add(ret.session)) console.error("Error: Failed to save command session"); // TODO: better feedback
   if (ret) msg.channel.send(ret.reply);
   msg.channel.stopTyping(true);
 }

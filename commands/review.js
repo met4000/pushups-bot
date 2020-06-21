@@ -1,6 +1,6 @@
 const Moderator = require("../classes/Moderator");
-const { MemoryCommand } = require("../commands/commandMemory");
+const { CommandSession } = require("./commandSession");
 
 module.exports = function (execObj, scope) {
-  return { reply: "`REVIEW MENU`", save: new MemoryCommand(execObj, () => {}, 5000) };
+  return { reply: "`REVIEW MENU`", session: new CommandSession(execObj, undefined, 5000) };
 };
