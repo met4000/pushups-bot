@@ -12,9 +12,12 @@ module.exports = function (execObj, scope) {
   // check user in channel
   nominee = execObj.msg.channel.members.get(nominee[1]); // GuildMember object, assuming in the channel
   if (nominee === undefined) return "`user not in channel`"; // TODO: better feedback
+  var nominator = execObj.msg.channel.members.get(execObj.msg.author.id); // GuildMember object, assuming in the channel, which they kinda should be to have sent a message there...
+
+  // check that they're not trying to nominate themselves
+  if (nominator.id === nominee.id) return "`cannot nominate yourself`"; // TODO: better feedback
 
   // get stats 'n' stuff
-  var nominator = execObj.msg.channel.members.get(execObj.msg.author.id); // GuildMember object, assuming in the channel, which they kinda should be to have sent a message there...
   var pNominator = new Participant(nominator), pNominee = new Participant(nominee);
   var stats = util.mapArrayToObject(scope.db.select("*", scope.config.databases.participants, v => [pNominator.getID(), pNominee.getID()].includes(Participant.getID(v))).map(v => new Participant(v)), o => o.getID());
 
