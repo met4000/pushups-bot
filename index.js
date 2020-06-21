@@ -72,7 +72,7 @@ function commandSessionCommandHandler(msg, cs) {
   if (config.verbose) logMessageVerbose("c_session", msg, "[CommandSession]");
 
   cs.touch();
-  msg.reply("`TOUCHED`");
+  msg.reply(`\`TOUCHED ${cs.execObjList.length}\``);
 }
 
 function channelmsg(msg, processed) {
@@ -86,7 +86,7 @@ function channelmsg(msg, processed) {
   msg.channel.startTyping();
   var ret = command.exec({ args: processed.args, msg: msg }, { db: db, config: config });
   if (ret.session) if (!commandSession.add(ret.session)) console.error("Error: Failed to save command session"); // TODO: better feedback
-  if (ret) msg.reply(ret.reply);
+  if (ret) msg.reply(ret.reply).then(ret.session ? v => commandSession.getByID(ret.session.getID()).message = v : () => {});
   msg.channel.stopTyping(true);
 }
 
@@ -99,7 +99,7 @@ function directmsg(msg, processed) {
   msg.channel.startTyping();
   var ret = command.exec({ args: processed.args, msg: msg }, { db: db, config: config });
   if (ret.session) if (!commandSession.add(ret.session)) console.error("Error: Failed to save command session"); // TODO: better feedback
-  if (ret) msg.channel.send(ret.reply);
+  if (ret) msg.channel.send(ret.reply).then(ret.session ? v => commandSession.getByID(ret.session.getID()).message = v : () => {});
   msg.channel.stopTyping(true);
 }
 

@@ -8,6 +8,7 @@ class CommandSession {
     this.execObjList = [execObj];
     this.user = execObj.msg.author;
     this.channel = execObj.msg.channel;
+    this.message = undefined;
     this.closer = closer;
     this.lifespan = lifespan;
     this.timeoutID = null;
@@ -33,7 +34,7 @@ class CommandSession {
       var ret = this.closer(this);
       if (ret !== undefined) {
         if (typeof ret !== "object") ret = { reply: ret };
-        this.execObjList[this.execObjList.length - 1].msg.reply(ret.reply);
+        this.message.edit(ret.reply);
       }
 
       remove(this);
