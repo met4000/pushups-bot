@@ -5,10 +5,16 @@ const config = require("../config.json");
 class CommandSession {
   constructor(execObj, closer = undefined, lifespan = config.commandMemory.defaultLifespan) {
     if (closer === undefined) closer = cs => "`CommandSession timeout`";
-    this.execObjList = [execObj];
+    this.execObj = execObj;
+    this.commandName = execObj.commandName;
+    this.commandList = [execObj.args];
+    this.expecting = undefined;
+
     this.user = execObj.msg.author;
     this.channel = execObj.msg.channel;
+
     this.message = undefined;
+
     this.closer = closer;
     this.lifespan = lifespan;
     this.timeoutID = null;
@@ -25,8 +31,12 @@ class CommandSession {
       lifespan: this.lifespan
     });
   }
+
+  add(command) {
+    this.commandList.push(command);
+  }
   
-  touch() {
+  touch(t = null) {
     clearTimeout(this.timeoutID);
     this.timeoutID = setTimeout(() => {
       if (config.verbose) console.log(`Info: CommandSession '${this.getID()}' has expired.`);
@@ -35,10 +45,11 @@ class CommandSession {
       if (ret !== undefined) {
         if (typeof ret !== "object") ret = { reply: ret };
         this.message.edit(ret.reply);
+        this.message.channel.stopTyping(true);
       }
 
       remove(this);
-    }, this.lifespan);
+    }, t === null ? this.lifespan : t);
   }
 };
 

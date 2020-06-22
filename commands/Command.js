@@ -10,11 +10,23 @@ module.exports = class Command {
   get aliasList() { return this._aliasList; }
   
   exec(execObj, scope) {
-    // execObj = { args: ..., msg: ... }, scope = { db: ..., config: ... /* things passed for scope */ }
-    var ret = this._exec(execObj, scope);
+    var ret = (() => {
+      if (execObj.cs !== undefined) {
+        execObj.cs.touch();
+        if (execObj.cs.expecting !== undefined) {
+          if (!execObj.cs.expecting.includes(execObj.args[0])) {
+            execObj.msg.channel.send("`ERR NOT EXPECTING`"); // TODO: better feedback
+            return null;
+          }
+        }
+      }
+
+      // execObj = { args: ..., msg: ... }, scope = { db: ..., config: ... /* things passed for scope */ }
+      return this._exec(execObj, scope);
+    })();
 
     if (ret === undefined) return;
-    if (typeof ret !== "object") ret = { reply: ret };
+    if (ret === null || typeof ret !== "object") ret = { reply: ret };
 
     return ret;
   }

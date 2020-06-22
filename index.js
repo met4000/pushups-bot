@@ -10,6 +10,10 @@ const config = require("./config.json");
 var _config = require("./_config.json");
 if (!Array.isArray(_config.channelID)) _config.channelID = [_config.channelID];
 
+function generateScope() {
+  return { db: db, config: config };
+}
+
 var commands = {};
 function getCommandByName(source, name) { return source[name]; }
 var commandRegexp;
@@ -49,14 +53,19 @@ client.on("error", e => {
 client.on("message", msg => {
   if (msg.author.bot) return;
 
-  var commandSessionID = commandSession.CommandSession.getIDByMessage(msg);
-  if (commandSession.includes(commandSessionID)) commandSessionCommandHandler(msg, commandSession.getByID(commandSessionID));
+  var ret = (() => {
+    var cs = commandSession.getByID(commandSession.CommandSession.getIDByMessage(msg));
+    if (cs !== undefined) {
+      if (msg.channel instanceof Discord.TextChannel) return commandSessionChannelHandler(msg, cs);
+      if (msg.channel instanceof Discord.DMChannel) return commandSessionDirectHandler(msg, cs);
+    }
 
   var processed = processCommandString(msg.content);
   if (processed === undefined) return;
 
-  if (msg.channel instanceof Discord.TextChannel) channelmsg(msg, processed);
-  if (msg.channel instanceof Discord.DMChannel) directmsg(msg, processed);
+    if (msg.channel instanceof Discord.TextChannel) return channelmsg(msg, processed);
+    if (msg.channel instanceof Discord.DMChannel) return directmsg(msg, processed);
+  })();
 });
 
 function logMessageVerbose(type, msg, data) {
@@ -68,11 +77,31 @@ function logMessageVerbose(type, msg, data) {
   console.log(`${type}: ${msgString}, ${dataString}`);
 };
 
-function commandSessionCommandHandler(msg, cs) {
-  if (config.verbose) logMessageVerbose("c_session", msg, "[CommandSession]");
+function commandSessionChannelHandler(msg, cs) {
+  return commandSessionCommandHandler(msg, cs, commands.channel);
+}
 
-  cs.touch();
-  msg.reply(`\`TOUCHED ${cs.execObjList.length}\``);
+function commandSessionDirectHandler(msg, cs) {
+  return commandSessionCommandHandler(msg, cs, commands.direct);
+}
+
+function commandSessionCommandHandler(msg, cs, commandSource) {
+  if (config.verbose) logMessageVerbose("c_session", msg, msg.content);
+
+  cs.message.channel.startTyping();
+  var command = getCommandByName(commandSource, cs.commandName); // could probs move this to CommandSession constructor, but eh
+  var ret = command.exec({ args: msg.content.split(" "), msg: msg, cs: cs }, generateScope());
+  if (ret === undefined) ret = {};
+  if (ret.reply !== null) cs.message.edit(ret.reply || "`ERR NO REPLY`");
+  cs.message.channel.stopTyping(true);
+}
+
+function commandHandler(msg, processed, command, replyFunc) {
+  msg.channel.startTyping();
+  var ret = command.exec({ args: processed.args, msg: msg, commandName: processed.command }, generateScope());
+  if (!commandSession.add(ret.session)) console.error("Error: Failed to save command session"); // TODO: better feedback
+  if (ret) replyFunc(ret.reply).then(ret.session ? v => commandSession.getByID(ret.session.getID()).message = v : () => {});
+  msg.channel.stopTyping(true);
 }
 
 function channelmsg(msg, processed) {
@@ -83,11 +112,7 @@ function channelmsg(msg, processed) {
   var command = getCommandByName(commands.channel, processed.command);
   if (command === undefined) { return -1; } // TODO
 
-  msg.channel.startTyping();
-  var ret = command.exec({ args: processed.args, msg: msg }, { db: db, config: config });
-  if (ret.session) if (!commandSession.add(ret.session)) console.error("Error: Failed to save command session"); // TODO: better feedback
-  if (ret) msg.reply(ret.reply).then(ret.session ? v => commandSession.getByID(ret.session.getID()).message = v : () => {});
-  msg.channel.stopTyping(true);
+  commandHandler(msg, processed, command, v => msg.reply(v));
 }
 
 function directmsg(msg, processed) {
@@ -96,11 +121,7 @@ function directmsg(msg, processed) {
   var command = getCommandByName(commands.direct, processed.command);
   if (command === undefined) { return -1; } // TODO
 
-  msg.channel.startTyping();
-  var ret = command.exec({ args: processed.args, msg: msg }, { db: db, config: config });
-  if (ret.session) if (!commandSession.add(ret.session)) console.error("Error: Failed to save command session"); // TODO: better feedback
-  if (ret) msg.channel.send(ret.reply).then(ret.session ? v => commandSession.getByID(ret.session.getID()).message = v : () => {});
-  msg.channel.stopTyping(true);
+  commandHandler(msg, processed, command, v => msg.channel.send(v));
 }
 
 
