@@ -17,7 +17,7 @@ function generateScope() {
 
 var cachedChannels = {};
 
-var commands = {};
+var commands = { channel: {}, direct: {} };
 function getCommandByName(source, name) { return source[name]; }
 var commandRegexp;
 function processCommandString(str) {
@@ -29,8 +29,12 @@ function processCommandString(str) {
 
 // Startup
 util.info(suffix => `Load${suffix} commands`, () => {
-  util.info(suffix => `Load${suffix} channel commands`, () => commands.channel = commandLoader.load(require("./commands/channel")), false);
-  util.info(suffix => `Load${suffix} direct commands`, () => commands.direct = commandLoader.load(require("./commands/direct")), false);
+  util.info(suffix => `Load${suffix} universal commands`, () => {
+    commandLoader.load(commands.channel, require("./commands/universal"));
+    commandLoader.load(commands.direct, require("./commands/universal"), false);
+  }, false);
+  util.info(suffix => `Load${suffix} channel commands`, () => commandLoader.load(commands.channel, require("./commands/channel")), false);
+  util.info(suffix => `Load${suffix} direct commands`, () => commandLoader.load(commands.direct, require("./commands/direct")), false);
 });
 
 // util.info("DB startup", () => {

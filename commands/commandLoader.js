@@ -2,17 +2,15 @@ module.exports = {
   load: load,
 };
 
-function load(obj) {
-  var loaded = {};
-
+function load(target, obj, verbose = true) {
   Object.keys(obj).forEach(commandname => {
     var command = obj[commandname];
     command.aliasList.forEach(alias => {
-      if (loaded[alias] !== undefined) throw new Error(`FATAL ERROR: Alias overlap detected between commands '${alias}' ('${command.name}') and '${alias}' ('${loaded[alias].name}')`);
-      loaded[alias] = command;
+      if (target[alias] !== undefined) throw new Error(`FATAL ERROR: Alias overlap detected between commands '${alias}' ('${command.name}') and '${alias}' ('${target[alias].name}')`);
+      target[alias] = command;
     });
-    console.info(`Info: Loaded command ${command.name}`);
+    if (verbose) console.info(`Info: Loaded command ${command.name}`);
   });
 
-  return loaded;
+  return target;
 }
