@@ -4,11 +4,13 @@ const config = require("../config.json");
 
 class CommandSession {
   constructor(execObj, closer = undefined, lifespan = config.commandSession.defaultLifespan) {
-    if (closer === undefined) closer = cs => "`CommandSession timeout`";
+    if (closer === undefined) closer = (cs, isTimeout) => "```\nCommandSession timeout\n```";
     this.execObj = execObj;
     this.commandName = execObj.commandName;
     this.commandList = [];
     this.expecting = undefined;
+
+    this.data = {}; // data storage for the command session, for use by the command
 
     this.user = execObj.msg.author;
     this.channel = execObj.msg.channel;
@@ -40,19 +42,19 @@ class CommandSession {
     clearTimeout(this.timeoutID);
     this.timeoutID = setTimeout(() => {
       if (config.verbose) console.log(`Info: CommandSession '${this.getID()}' has expired.`);
-
-      var ret = this.closer(this);
-      if (ret !== undefined) {
-        if (typeof ret !== "object") ret = { reply: ret };
-        this.message.edit(ret.reply);
-        this.message.channel.stopTyping(true);
-      }
-
-      this.close();
+      this.close(true);
     }, t === null ? this.lifespan : t);
   }
 
-  close() { remove(this); }
+  close(isTimeout = false) {
+    var ret = this.closer(this, isTimeout);
+    if (ret === undefined) ret = {};
+    if (typeof ret !== "object") ret = { reply: ret };
+    if (ret.edit !== undefined) this.message.edit(ret.edit);
+    if (ret.reply !== undefined) this.message.channel.send(ret.reply);
+    cs.message.channel.stopTyping(true);
+    remove(this);
+  }
 };
 
 module.exports = {

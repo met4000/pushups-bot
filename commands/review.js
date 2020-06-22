@@ -1,4 +1,9 @@
+const { MessageAttachment } = require("discord.js");
+
 const { CommandSession } = require("./commandSession");
+const Submission = require("../classes/Submission");
+const Participant = require("../classes/Participant");
+const util = require("../util");
 
 module.exports = function (execObj, scope) {
   if (execObj.cs !== undefined) return c_session(execObj, execObj.cs, scope);
@@ -8,40 +13,104 @@ module.exports = function (execObj, scope) {
 function initial(execObj, scope) {
   if (execObj.args.length !== 0) return "`incorrect arg amount`"; // TODO: better feedback
 
-  var cs = new CommandSession(execObj, undefined, 15000);
+  var cs = new CommandSession(execObj, (cs, isTimeout) => {
+    var edit = cs.message.content.split("\n");
+    if (edit[1][0] === ">") edit = [edit[0]].concat(edit.slice(2));
+    return {
+      edit: edit, // should become the default edit?
+      reply: isTimeout ? "`c_session timeout`" : "`c_session closed`"
+    };
+  });
   cs.expecting = ["t"];
 
-  return { reply: c_session(execObj, cs, scope), session: cs };
+  var ret = c_session(execObj, cs, scope);
+  ret.reply = ret.edit;
+  delete ret.edit;
+  return { ...ret, session: cs };
 }
 
 function c_session(execObj, cs, scope) {
-  // processing
   var data = { commands: {} };
 
   if (execObj.args.length > 1) return "`incorrect arg amount`"; // TODO: better feedback
   
-  var command = execObj.args[0];
-  if (command) {
-    cs.add(command);
-    switch (command) {
-      case "t":
-        data.display = "T";
-        break;
-    }
-  } else { // root
-    data.commands = { "t": "touch" };
+  if (execObj.args.length > 0) cs.add(execObj.args[0]); // because [] is back
+
+  var command = "review";
+  if (cs.commandList.length) command += "." + cs.commandList.join(".");
+
+  switch (command) {
+    case "review":
+      data.commands = { "next": "review the next unreviewed submission" };
+      break;
+
+    case "review.next":
+      if (execObj.args.length === 0) { // i.e. back => next
+        cs.commandList.pop();
+        return c_session(execObj, cs, scope);
+      }
+
+      var dbret = scope.db.select("*", scope.config.databases.submissions, v => v.approved === null, 1)[0];
+      if (dbret !== undefined) {
+        cs.data = dbret;
+        data.display = dbret;
+        data.commands = {
+          "affirmative": "confirm and award the claimed pushups",
+          "negative": "deny the claimed pushups"
+        };
+        data.after = `( ${dbret.url} )`;
+      } else {
+        data.display = "There are no new submissions :)";
+      }
+      break;
+     
+    case "review.next.affirmative":
+      var dbret = util.deRef(cs.data);
+      cs.data = {};
+
+      scope.db.update({ approved: true }, scope.config.databases.submissions, Submission.getID(dbret));
+      scope.db.update({ pushups: v => v + dbret.claim }, scope.config.databases.participants, Participant.getID(dbret));
+      
+      dbret.approved = true;
+      scope.db.save([scope.config.databases.participants, scope.config.databases.submissions]);
+
+      global.client.users.fetch(dbret.userid).then(user => user.send(`\`Submission '${Submission.getID(dbret)}' (+${dbret.claim})\` accepted`)); // TODO: better feedback
+
+      data.display = [dbret, "", "Submission has been approved"];
+      data.after = `( ${dbret.url} )`;
+      break;
+
+    case "review.next.negative":
+      var dbret = util.deRef(cs.data);
+      cs.data = {};
+
+      scope.db.update({ approved: false }, scope.config.databases.submissions, Submission.getID(dbret));
+
+      dbret.approved = false;
+      scope.db.save(scope.config.databases.submissions);
+
+      global.client.users.fetch(dbret.userid).then(user => user.send(`\`Submission '${Submission.getID(dbret)}' (+${dbret.claim})\` denied`)); // TODO: better feedback
+
+      data.display = [dbret, "", "Submission has been denied"];
+      data.after = `( ${dbret.url} )`;
+      break;
+
+    default:
+      return "`err unexpected path`";
   }
   
   cs.expecting = Object.keys(data.commands);
-  return generateMenu(cs, data, scope.config);
+  var ret = { edit: generateMenu(cs, data, scope.config) };
+  // if (something) ret = { ...ret, someKey: someData };
+  return ret;
 }
 
 function generateMenu(cs, data, config) { // TODO move to CommandSession
   var ret = "```\n";
 
   // current command
-  ret += "> review";
-  if (cs.commandList.length) ret += " / " + cs.commandList.join(" / ");
+  ret += "> " + cs.commandName;
+  if (cs.commandList.length) ret += " > " + cs.commandList.join(" > ");
   ret += "\n";
 
   // header
@@ -60,8 +129,12 @@ function generateMenu(cs, data, config) { // TODO move to CommandSession
 
   // data
   if (data.display) {
-    if (typeof data.display === "object") Object.keys(data.display).forEach(k => ret += `${k}: ${JSON.stringify(data.display[k])}\n`);
-    else ret += JSON.stringify(data.display) + "\n";
+    var arr = data.display;
+    if (!Array.isArray(arr)) arr = [arr];
+    arr.forEach(el => {
+      if (typeof el === "object") Object.keys(el).forEach(k => ret += `${k}: ${JSON.stringify(el[k])}\n`);
+      else ret += el + "\n";
+    });
     ret += "\n";
   }
 
@@ -71,5 +144,14 @@ function generateMenu(cs, data, config) { // TODO move to CommandSession
   if (cs.commandList.length > 0) ret += "back".padEnd(config.commandSession.commandNameWidth) + "- close the submenu (go back)\n";
   ret += "close".padEnd(config.commandSession.commandNameWidth) + "- close the menu entirely\n";
 
-  return ret + "\n```";
+  ret += "\n```";
+  if (data.after !== undefined) {
+    var arr = data.after;
+    if (!Array.isArray(arr)) arr = [arr];
+    arr.forEach(el => {
+      if (typeof el === "object") Object.keys(el).forEach(k => ret += `${k}: ${JSON.stringify(el[k])}\n`);
+      else ret += el + "\n";
+    });
+  }
+  return ret;
 }
