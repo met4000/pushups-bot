@@ -18,16 +18,18 @@ module.exports = class Command {
         var expecting = execObj.cs.expecting;
         if (expecting !== undefined) {
           switch (execObj.args[0]) {
-            case "back":
-              execObj.args = [];
-              execObj.cs.commandList.pop();
-              break;
-
             case "close":
               execObj.cs.close();
               execObj.msg.channel.send("`C_SESSION CLOSED`");
               return null; // change to generateMenu, but missing the top line (current command), or delete message
-
+            
+            case "back":
+              if (execObj.cs.commandList.length > 0) {
+                execObj.args = [];
+                execObj.cs.commandList.pop();
+                break;
+              }
+              // FALL THROUGH
             default:
               if (!expecting.includes(execObj.args[0])) {
                 execObj.msg.channel.send("`ERR NOT EXPECTING`"); // TODO: better feedback
