@@ -1,13 +1,15 @@
 module.exports = class Command {
-  constructor(name, aliasList, exec) {
+  constructor(name, aliasList, exec, moderatorOnly = false) {
     this._name = name;
     if (!Array.isArray(aliasList)) aliasList = [aliasList];
     this._aliasList = aliasList;
     this._exec = exec;
+    this._moderatorOnly = moderatorOnly;
   }
   
   get name() { return this._name; }
   get aliasList() { return this._aliasList; }
+  get moderatorOnly() { return this._moderatorOnly; }
   
   exec(execObj, scope) {
     var ret = (() => {

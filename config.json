@@ -4,6 +4,7 @@
     "defaultLifespan": 300e3
   },
   "databases": {
+    "moderators": "moderators",
     "participants": "participants",
     "submissions": "submissions"
   },

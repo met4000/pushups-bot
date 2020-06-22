@@ -66,7 +66,7 @@ module.exports = {
 var internal = {};
 
 function add(cs) {
-  if (!(cs instanceof CommandSession)) return;
+  if (!(cs instanceof CommandSession)) return null;
 
   if (internal[cs.getID()] !== undefined); // do something, maybe...?
 

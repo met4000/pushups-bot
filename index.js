@@ -1,18 +1,21 @@
 const Discord = require("discord.js");
 global.client = new Discord.Client();
+const deasync = require("deasync-promise");
 
 const util = require("./util");
 const db = require("./db");
 const commandLoader = require("./commands/commandLoader");
+const Moderator = require("./classes/Moderator");
 const commandSession = require("./commands/commandSession");
 
 const config = require("./config.json");
-var _config = require("./_config.json");
-if (!Array.isArray(_config.channelID)) _config.channelID = [_config.channelID];
+const _config = require("./_config.json");
 
 function generateScope() {
   return { db: db, config: config };
 }
+
+var cachedChannels = {};
 
 var commands = {};
 function getCommandByName(source, name) { return source[name]; }
@@ -32,7 +35,7 @@ util.info(suffix => `Load${suffix} commands`, () => {
 
 // util.info("DB startup", () => {
 {
-  var dblist = [config.databases.participants, config.databases.submissions];
+  var dblist = [config.databases.moderators, config.databases.participants, config.databases.submissions];
   db.init();
   if (config.backup) db.backup(dblist);
   db.load(dblist);
@@ -42,8 +45,18 @@ util.info(suffix => `Load${suffix} commands`, () => {
 
 // Discord Behaviours
 client.on("ready", () => {
-  console.log(`Discord connected. Logged in as ${client.user.tag}.`);
+  console.info(`Info: Discord connected. Logged in as ${client.user.tag}.`);
+  
   commandRegexp = new RegExp(`^(?:${client.user.username}|${client.user.username[0]})${config.prefix}([^ ]+)(?: (.*))?$`);
+  
+  console.info("Info: Async fetching channels...");
+  _config.channelIDs.forEach(channelID => {
+    console.info(`Info: Async fetching '${channelID}'...`);
+    client.channels.fetch(channelID).then(v => {
+      cachedChannels[v.id] = v;
+      console.info(`Info: Fetched '${v.id}' (${v.name})`);
+    });
+  });
 });
 
 client.on("error", e => {
@@ -51,7 +64,7 @@ client.on("error", e => {
 });
 
 client.on("message", msg => {
-  if (msg.author.bot) return;
+  if (msg.author.bot) return null;
 
   var ret = (() => {
     var cs = commandSession.getByID(commandSession.CommandSession.getIDByMessage(msg));
@@ -60,8 +73,8 @@ client.on("message", msg => {
       if (msg.channel instanceof Discord.DMChannel) return commandSessionDirectHandler(msg, cs);
     }
 
-  var processed = processCommandString(msg.content);
-  if (processed === undefined) return;
+    var processed = processCommandString(msg.content);
+    if (processed === undefined) return null;
 
     if (msg.channel instanceof Discord.TextChannel) return channelmsg(msg, processed);
     if (msg.channel instanceof Discord.DMChannel) return directmsg(msg, processed);
@@ -88,40 +101,48 @@ function commandSessionDirectHandler(msg, cs) {
 function commandSessionCommandHandler(msg, cs, commandSource) {
   if (config.verbose) logMessageVerbose("c_session", msg, msg.content);
 
-  cs.message.channel.startTyping();
   var command = getCommandByName(commandSource, cs.commandName); // could probs move this to CommandSession constructor, but eh
+  
+  cs.message.channel.startTyping();
   var ret = command.exec({ args: msg.content.split(" "), msg: msg, cs: cs }, generateScope());
   if (ret === undefined) ret = {};
   if (ret.reply !== null) cs.message.edit(ret.reply || "`ERR NO REPLY`");
   cs.message.channel.stopTyping(true);
+  return true;
 }
 
 function commandHandler(msg, processed, command, replyFunc) {
+  if (command.moderatorOnly) if (db.select("*", config.databases.moderators, v => new Moderator(v).userid === new Moderator({ userid: msg.author.id }).userid).length === 0) return null;
+  
   msg.channel.startTyping();
   var ret = command.exec({ args: processed.args, msg: msg, commandName: processed.command }, generateScope());
-  if (!commandSession.add(ret.session)) console.error("Error: Failed to save command session"); // TODO: better feedback
-  if (ret) replyFunc(ret.reply).then(ret.session ? v => commandSession.getByID(ret.session.getID()).message = v : () => {});
+  if (ret === undefined) ret = {};
+  if (ret.session !== undefined) if (!commandSession.add(ret.session)) console.error("Error: Failed to save command session"); // TODO: better feedback
+  if (ret.reply !== null) replyFunc(ret.reply || "`ERR NO REPLY`").then(ret.session ? v => commandSession.getByID(ret.session.getID()).message = v : () => {});
   msg.channel.stopTyping(true);
+  return true;
 }
 
 function channelmsg(msg, processed) {
-  if (!_config.channelID.includes(parseInt(msg.channel.id))) return;
+  if (!_config.channelIDs.includes(msg.channel.id)) return null;
   
   if (config.verbose) logMessageVerbose("channel", msg, processed);
 
   var command = getCommandByName(commands.channel, processed.command);
-  if (command === undefined) { return -1; } // TODO
+  if (command === undefined) { return null; } // TODO
 
-  commandHandler(msg, processed, command, v => msg.reply(v));
+  return commandHandler(msg, processed, command, v => msg.reply(v));
 }
 
 function directmsg(msg, processed) {
+  if (!Object.values(cachedChannels).some(cachedChannel => cachedChannel.members.has(msg.author.id))) return null;
+
   if (config.verbose) logMessageVerbose("direct", msg, processed);
 
   var command = getCommandByName(commands.direct, processed.command);
-  if (command === undefined) { return -1; } // TODO
+  if (command === undefined) { return null; } // TODO
 
-  commandHandler(msg, processed, command, v => msg.channel.send(v));
+  return commandHandler(msg, processed, command, v => msg.channel.send(v));
 }
 
 

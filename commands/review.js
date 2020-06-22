@@ -1,4 +1,3 @@
-const Moderator = require("../classes/Moderator");
 const { CommandSession } = require("./commandSession");
 
 module.exports = function (execObj, scope) {

@@ -1,5 +1,5 @@
 const Discord = require("discord.js");
-const deasync = require("deasync");
+const deasync = require("deasync-promise");
 
 module.exports = class BaseUser {
   constructor(user) {
@@ -13,6 +13,7 @@ module.exports = class BaseUser {
   }
 
   static isGuildMemberObject(user) { return user instanceof Discord.GuildMember; }
+  static isUserObject(user) { return user instanceof Discord.User; }
 
   static getID(user) { return user.userid; }
   getID() { return BaseUser.getID(this); }
