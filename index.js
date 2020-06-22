@@ -119,7 +119,7 @@ function commandHandler(msg, processed, command, replyFunc) {
   if (command.moderatorOnly) if (db.select("*", config.databases.moderators, v => new Moderator(v).userid === new Moderator({ userid: msg.author.id }).userid).length === 0) return null;
   
   msg.channel.startTyping();
-  var ret = command.exec({ args: processed.args, msg: msg, commandName: processed.command }, generateScope());
+  var ret = command.exec({ args: processed.args, msg: msg, commandName: command.name }, generateScope());
   if (ret === undefined) ret = {};
   if (ret.session !== undefined) if (!commandSession.add(ret.session)) console.error("Error: Failed to save command session"); // TODO: better feedback
   if (ret.reply !== null) replyFunc(ret.reply || "`ERR NO REPLY`").then(ret.session ? v => commandSession.getByID(ret.session.getID()).message = v : () => {});

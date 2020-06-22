@@ -1,7 +1,9 @@
 {
   "backup": true,
-  "commandMemory": {
-    "defaultLifespan": 300e3
+  "commandSession": {
+    "defaultLifespan": 300e3,
+    "menuWidth": 64,
+    "commandNameWidth": 16
   },
   "databases": {
     "moderators": "moderators",

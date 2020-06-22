@@ -3,11 +3,11 @@ const util = require("../util");
 const config = require("../config.json");
 
 class CommandSession {
-  constructor(execObj, closer = undefined, lifespan = config.commandMemory.defaultLifespan) {
+  constructor(execObj, closer = undefined, lifespan = config.commandSession.defaultLifespan) {
     if (closer === undefined) closer = cs => "`CommandSession timeout`";
     this.execObj = execObj;
     this.commandName = execObj.commandName;
-    this.commandList = [execObj.args];
+    this.commandList = [];
     this.expecting = undefined;
 
     this.user = execObj.msg.author;
@@ -48,9 +48,11 @@ class CommandSession {
         this.message.channel.stopTyping(true);
       }
 
-      remove(this);
+      this.close();
     }, t === null ? this.lifespan : t);
   }
+
+  close() { remove(this); }
 };
 
 module.exports = {
@@ -90,6 +92,6 @@ function includes(id) {
 
 function remove(memoryCommand) {
   var cs = get(memoryCommand);
-  clearTimeout(this.timeoutID);
+  clearTimeout(cs.timeoutID);
   return delete internal[cs.getID()];
 }
