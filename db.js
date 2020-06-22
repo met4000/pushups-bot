@@ -65,17 +65,15 @@ function load(dbname, force = false) {
 }
 
 function save(dbname = "*") {
-  var db = [];
-
   if (dbname === "*") {
-    db = Object.keys(internal);
+    dbname = Object.keys(internal);
   } else {
-    if (!Array.isArray(dbname)) db = [dbname];
+    if (!Array.isArray(dbname)) dbname = [dbname];
   }
 
   var ca = 0, cs = 0, fail;
   util.info(suffix => `Sav${suffix} databases`, () => {
-    db.forEach(_dbname => {
+    dbname.forEach(_dbname => {
       ca++;
       if (!isLoaded(_dbname)) { console.error(`Error: Unable to save database '${_dbname}': No data found`); return; }
 
@@ -117,26 +115,29 @@ function backup(dbname, save = false) {
 
 
 // Manipulators (i.e. changes to the data)
-
 /**
  * Selects data from the named database(s).
  *
- * @param {*} sel The key (or array of keys) to retrieve the value(s) for. "*" is wildcard.
- * @param {string} [dbname] The name of the database(s).
- * @param {boolean} [condition=(v, db) => true] The condition to determine if a row should be included. Parameters are the row values and the database name.
+ * @param {"*"|Object.<string, *>} sel The key (or array of keys) to retrieve the value(s) for. "*" is wildcard.
+ * @param {string|[string]} dbname The name of the database(s).
+ * @param {string|[string]|function(Object.<string, *>, string):boolean} [condition=(values, dbname) => true] The condition to determine if a row should be included. Parameters are the row values and the database name.
+ * @param {number} [amount] The number of rows to find. Defaults to Infinity ("all").
  * @returns A list containing the selected data. Either a single value, or an object with the requested keys/values.
  */
-function select(sel, dbname, condition = (v, db) => true) {
+function select(sel, dbname, condition = (values, dbname) => true, amount = Infinity) {
   var wildcard = sel === "*", multimode = Array.isArray(sel);
   if (!Array.isArray(dbname)) dbname = [dbname];
+  if (typeof condition !== "function") if (!Array.isArray(condition)) condition = [condition];
 
   var l = [];
-  dbname.forEach(_dbname => {
+  db_search: for (_dbname of dbname) {
     if (!isLoaded(_dbname)) { console.error(`Error: Unable to select from database '${_dbname}': Database not loaded`); return -1; }
 
-    Object.keys(internal[_dbname].json).forEach(_key => {
+    for (_key in internal[_dbname].json) {
+      if (l.length >= amount) break db_search;
+
       var _values = internal[_dbname].json[_key];
-      if (condition(_values, _dbname)) {
+      if (typeof condition === "function" ? condition(_values, _dbname) : condition.includes(_key)) {
         if (wildcard) {
           l.push(_values);
         } else if (multimode) {
@@ -151,8 +152,8 @@ function select(sel, dbname, condition = (v, db) => true) {
           l.push(_values[sel]);
         }
       }
-    });
-  });
+    }
+  }
   return util.deRef(l);
 }
 
@@ -175,8 +176,15 @@ function insert(el, dbname) { // TODO: add error checking on type of `el`
   return [ia, is];
 }
 
-function update(el, dbname, condition = (v, db) => false) {
+/**
+ * @param {Object.<string, *>|Object.<string, function(*):*>} el
+ * @param {string|[string]} dbname
+ * @param {string|[string]|function(Object.<string, *>, string):boolean} [condition=(values, dbname) => false]
+ * @returns
+ */
+function update(els, dbname, condition = (values, dbname) => false) {
   if (!Array.isArray(dbname)) dbname = [dbname];
+  if (typeof condition !== "function") if (!Array.isArray(condition)) condition = [condition];
 
   var rc = 0, ec = 0;
   dbname.forEach(_dbname => {
@@ -184,12 +192,12 @@ function update(el, dbname, condition = (v, db) => false) {
 
     Object.keys(internal[_dbname].json).forEach(_key => {
       var _values = internal[_dbname].json[_key];
-      if (condition(_values, _dbname)) {
+      if (typeof condition === "function" ? condition(_values, _dbname) : condition.includes(_key)) {
         rc++;
-        Object.keys(el).forEach(k => {
+        Object.keys(els).forEach(k => {
           if (_values[k] === undefined) { console.error(`Error: Unable to update key '${k}' of row '${_key}' in database '${_dbname}': Key not found`); return -1; }
 
-          _values[k] = util.deRef(el[k]);
+          _values[k] = typeof els[k] === "function" ? util.deRef(els[k](_values[k])) : util.deRef(els[k]);
           ec++;
         });
       }
