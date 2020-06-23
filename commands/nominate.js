@@ -19,7 +19,7 @@ module.exports = function (execObj, scope) {
 
   // get stats 'n' stuff
   var pNominator = new Participant(nominator), pNominee = new Participant(nominee);
-  var stats = util.mapArrayToObject(scope.db.select("*", scope.config.databases.participants, [pNominator.getID(), pNominee.getID()]).map(v => new Participant(v)), o => o.getID());
+  var stats = util.mapArrayToObject(scope.db.select("*", scope.config.databases.participants, [pNominator.getID(), pNominee.getID()], 2).map(v => new Participant(v)), o => o.getID());
 
   // check db results, and add peeps if they don't exist
   var inserted = [{ u: nominator, p: pNominator }, { u: nominee, p: pNominee }].reduce((r, v) => {
