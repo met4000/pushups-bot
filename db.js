@@ -32,7 +32,7 @@ function filenameByDBName(dbname) {
 
 function filepathByDBName(dbname) {
   if (!dbname) throw new Error("FATAL ERROR: No name passed.");
-  return `./db/${filenameByDBName(dbname)}`;
+  return `db/${filenameByDBName(dbname)}`;
 }
 
 function mkdirSyncFullpath(path) {
@@ -57,7 +57,7 @@ function load(dbname, force = false) {
         delete internal[_dbname];
 
       	internal[_dbname] = {
-          json: require(filepathByDBName(_dbname)),
+          json: require(`./${filepathByDBName(_dbname)}`),
         }
       }, false);
     });
@@ -79,7 +79,7 @@ function save(dbname = "*") {
 
       fail = false;
       console.info(`Info: Saving database '${_dbname}'...`);
-      try { fs.writeFileSync(filepathByDBName(_dbname), JSON.stringify(internal[_dbname].json, null, 2)); } catch (err) { fail = true; console.error(`Error: Error while saving database ${err}`); }
+      try { fs.writeFileSync(`./${filepathByDBName(_dbname)}`, JSON.stringify(internal[_dbname].json, null, 2)); } catch (err) { fail = true; console.error(`Error: Error while saving database ${err}`); }
       if (!fail) console.info(`Info: Saved database '${_dbname}'`);
       cs++;
     });
@@ -105,9 +105,11 @@ function backup(dbname, save = false) {
 
   	dbname.forEach(_dbname => {
       util.info(suffix => `Back${suffix} up ${_dbname}`, () => {
-        var p = `./backups/${_dbname}/${dtstring}`, file = filepathByDBName(_dbname);
+        var p = `backups/${_dbname}/${dtstring}`, filep = filepathByDBName(_dbname), file = filep, regexresult;
+        while (regexresult = /^([^/]+)\/(.+)$/.exec(file)) [p, file] = [`${p}/${regexresult[1]}`, regexresult[2]];
+
         mkdirSyncFullpath(p);
-        fs.copyFileSync(file, `${p}/${file}`, fs.constants.COPYFILE_EXCL);
+        fs.copyFileSync(`./${filep}`, `./${p}/${file}`, fs.constants.COPYFILE_EXCL);
       }, false);
     });
   });
@@ -130,10 +132,10 @@ function select(sel, dbname, condition = (values, dbname) => true, amount = Infi
   if (typeof condition !== "function") if (!Array.isArray(condition)) condition = [condition];
 
   var l = [];
-  db_search: for (_dbname of dbname) {
+  db_search: for (const _dbname of dbname) {
     if (!isLoaded(_dbname)) { console.error(`Error: Unable to select from database '${_dbname}': Database not loaded`); return -1; }
 
-    for (_key in internal[_dbname].json) {
+    for (const _key in internal[_dbname].json) {
       if (l.length >= amount) break db_search;
 
       var _values = internal[_dbname].json[_key];
