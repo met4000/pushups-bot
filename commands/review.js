@@ -30,7 +30,7 @@ function initial(execObj, scope) {
 }
 
 function c_session(execObj, cs, scope) {
-  var data = { commands: {} };
+  var data = { commands: {} }, reply = undefined;
 
   if (execObj.args.length > 1) return "`incorrect arg amount`"; // TODO: better feedback
   
@@ -74,10 +74,11 @@ function c_session(execObj, cs, scope) {
       dbret.approved = true;
       scope.db.save([scope.config.databases.participants, scope.config.databases.submissions]);
 
-      global.client.users.fetch(dbret.userid).then(user => user.send(`\`Submission '${Submission.getID(dbret)}' (+${dbret.claim})\` accepted`)); // TODO: better feedback
-
+      global.client.users.fetch(dbret.userid).then(user => user.send(`\`submission '${Submission.getID(dbret)}' (+${dbret.claim}) accepted\``)); // TODO: better feedback
+      
       data.display = [dbret, "", "Submission has been approved"];
       data.after = `( ${dbret.url} )`;
+      reply = `\`submission '${Submission.getID(dbret)}' (+${dbret.claim}) accepted\``;
       break;
 
     case "review.next.negative":
@@ -89,10 +90,11 @@ function c_session(execObj, cs, scope) {
       dbret.approved = false;
       scope.db.save(scope.config.databases.submissions);
 
-      global.client.users.fetch(dbret.userid).then(user => user.send(`\`Submission '${Submission.getID(dbret)}' (+${dbret.claim})\` denied`)); // TODO: better feedback
+      global.client.users.fetch(dbret.userid).then(user => user.send(`\`submission '${Submission.getID(dbret)}' (+${dbret.claim}) denied\``)); // TODO: better feedback
 
       data.display = [dbret, "", "Submission has been denied"];
       data.after = `( ${dbret.url} )`;
+      reply = `\`submission '${Submission.getID(dbret)}' (+${dbret.claim}) denied\``;
       break;
 
     default:
@@ -101,7 +103,7 @@ function c_session(execObj, cs, scope) {
   
   cs.expecting = Object.keys(data.commands);
   var ret = { edit: generateMenu(cs, data, scope.config) };
-  // if (something) ret = { ...ret, someKey: someData };
+  if (reply !== undefined) ret = { ...ret, reply: reply };
   return ret;
 }
 
