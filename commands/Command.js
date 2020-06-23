@@ -20,7 +20,7 @@ module.exports = class Command {
           switch (execObj.args[0]) {
             case "close":
               execObj.cs.close();
-              return null;
+              return;
             
             case "back":
               if (execObj.cs.commandList.length > 0) {
@@ -43,7 +43,7 @@ module.exports = class Command {
     })();
 
     if (ret === undefined) return;
-    if (ret === null || typeof ret !== "object") ret = { reply: ret };
+    if (typeof ret !== "object") ret = { reply: ret };
 
     return ret;
   }

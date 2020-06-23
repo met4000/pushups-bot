@@ -52,7 +52,7 @@ class CommandSession {
     if (typeof ret !== "object") ret = { reply: ret };
     if (ret.edit !== undefined) this.message.edit(ret.edit);
     if (ret.reply !== undefined) this.message.channel.send(ret.reply);
-    cs.message.channel.stopTyping(true);
+    this.message.channel.stopTyping(true);
     remove(this);
   }
 };
@@ -70,7 +70,7 @@ module.exports = {
 var internal = {};
 
 function add(cs) {
-  if (!(cs instanceof CommandSession)) return null;
+  if (!(cs instanceof CommandSession)) return false;
 
   if (internal[cs.getID()] !== undefined); // do something, maybe...?
 
