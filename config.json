@@ -10,6 +10,13 @@
     "participants": "participants",
     "submissions": "submissions"
   },
+  "commands": {
+    "points": {
+      "headerWidth": 36,
+      "joshRank": true,
+      "keyWidth": 16
+    }
+  },
   "pointCost": 30,
   "prefix": "!",
   "verbose": true

@@ -12,7 +12,7 @@ const config = require("./config.json");
 const _config = require("./_config.json");
 
 function generateScope() {
-  return { db: db, config: config };
+  return { db: db, cachedChannels: cachedChannels, config: config };
 }
 
 var cachedChannels = {};

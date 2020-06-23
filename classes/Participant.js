@@ -17,4 +17,6 @@ module.exports = class Participant extends BaseUser {
 
   get points() { return Math.floor(this.pushups / config.pointCost); }
   set points(n) { this.pushups += (n - this.points) * config.pointCost; }
+
+  get spare() { return this.pushups - this.points * config.pointCost; }
 };
