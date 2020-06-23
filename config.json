@@ -1,0 +1,23 @@
+{
+  "backup": true,
+  "commandSession": {
+    "defaultLifespan": 300e3,
+    "menuWidth": 64,
+    "commandNameWidth": 16
+  },
+  "databases": {
+    "moderators": "moderators",
+    "participants": "participants",
+    "submissions": "submissions"
+  },
+  "commands": {
+    "points": {
+      "headerWidth": 36,
+      "joshRank": true,
+      "keyWidth": 16
+    }
+  },
+  "pointCost": 30,
+  "prefix": "!",
+  "verbose": true
+}

@@ -1,3 +1,18 @@
+# Local gitignore:
+
+# Special config file
+_config.json
+
+# DBs
+db/
+
+# DB Backups
+backups/
+
+
+
+# Node gitignore:
+
 # Logs
 logs
 *.log
