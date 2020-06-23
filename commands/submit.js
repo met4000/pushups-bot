@@ -1,4 +1,5 @@
 const Submission = require("../classes/Submission");
+const Participant = require("../classes/Participant");
 
 module.exports = function (execObj, scope) {
   // check number of args
@@ -33,14 +34,14 @@ module.exports = function (execObj, scope) {
 
   // check url not already submitted
   var newSubmission = new Submission(user, url, claim);
-  var res = scope.db.select("*", scope.config.databases.submissions, v => v.url === newSubmission.url);
-  if (res.length > 0) return `\`url already submitted by '${scope.db.select("displayName", scope.config.databases.participants, v => v.userid === res[0].userid)[0]}'\``;
+  var res = scope.db.select("*", scope.config.databases.submissions, v => v.url === newSubmission.url, 1).map(v => new Participant({ userid: v.userid }));
+  if (res.length > 0) return `\`url already submitted by '${scope.db.select("displayName", scope.config.databases.participants, res[0].getID(), 1)[0]}'\``;
 
   // add to DB
   scope.db.insert({ [newSubmission.getID()]: newSubmission }, scope.config.databases.submissions);
   scope.db.save(scope.config.databases.submissions);
 
-  return "Your submission has received. You will receive a notification once a moderator has reviewed it.";
+  return "Your submission has been received. You will receive a notification once a moderator has reviewed it.";
 };
 
 function isValidURL(string) {
