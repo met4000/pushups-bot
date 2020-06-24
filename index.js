@@ -9,7 +9,9 @@ const Moderator = require("./classes/Moderator");
 const commandSession = require("./commands/commandSession");
 
 const config = require("./config.json");
-const _config = process.env.HEROKU ? process.env : require("./_config.json");
+var _config_temp = process.env.HEROKU ? process.env : require("./_config.json");
+if (!Array.isArray(_config_temp.channelIDs)) _config_temp.channelIDs = [_config_temp.channelIDs];
+const _config = util.deRef(_config_temp);
 
 function generateScope() {
   return { db: db, cachedChannels: cachedChannels, config: config };
