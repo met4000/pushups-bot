@@ -9,9 +9,8 @@ const Moderator = require("./classes/Moderator");
 const commandSession = require("./commands/commandSession");
 
 const config = require("./config.json");
-var _config_temp = process.env.HEROKU ? process.env : require("./_config.json");
-if (!Array.isArray(_config_temp.channelIDs)) _config_temp.channelIDs = [_config_temp.channelIDs];
-const _config = util.deRef(_config_temp);
+var _config = process.env.HEROKU ? new Proxy(process.env, { get: (...args) => JSON.parse(Reflect.get(...args))}) : require("./_config.json");
+if (!Array.isArray(_config.channelIDs)) _config.channelIDs = [_config.channelIDs];
 
 function generateScope() {
   return { db: db, cachedChannels: cachedChannels, config: config };
