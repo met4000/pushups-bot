@@ -1,8 +1,6 @@
 const { MongoClient } = require("mongodb");
 const deasync = require("deasync-promise");
 
-const dbacc = { username: "pushups-bot", password: "Xy9p6BWlnSXFsqjN" };
-
 /** @type {MongoClient} */
 var client;
 
