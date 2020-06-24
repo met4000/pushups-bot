@@ -16,17 +16,11 @@ module.exports = function (execObj, scope) {
 
   // get stats 'n' stuff
   var pUser = new Participant(user);
-  {
-    var pUserPopulated = new Participant(scope.db.select("*", scope.config.databases.participants, pUser.getID(), 1)[0]);
-
-    // check db results, and add if not existent
-    var inserted = false;
-    if (pUserPopulated === undefined) {
-      if (scope.config.verbose) console.info(`Info: Inserting new participant '${user.displayName} (${user.id})' with id '${pUser.getID()}'`);
-      scope.db.insert({ [pUser.getID()]: pUser }, scope.config.databases.participants);
-      inserted = true;
-    } else pUser = pUserPopulated;
-  }
+  var dbret = scope.db.select({ _id: pUser.getID() }, scope.config.databases.participants, true);
+  if (dbret === null) {
+    if (scope.config.verbose) console.info(`Info: Inserting new participant '${user.displayName} (${user.id})' with id '${pUser.getID()}'`);
+    if (scope.db.basicInsertFailCheck(scope.db.insert(pUser, scope.config.databases.participants), 1)) return "(when inserting new participant): `err db bad response`"; // TODO: better feedback
+  } else pUser = new Participant(dbret);
 
   // generate display string
   var ret = "```\n";
@@ -62,11 +56,15 @@ module.exports = function (execObj, scope) {
 };
 
 function getRank(participant, scope) {
-  return ordinalise(scope.db.select("*", scope.config.databases.participants).sort((a, b) => b.pushups - a.pushups).findIndex(v => Participant.getID(v) === participant.getID()) + 1);
+  var dbret = scope.db.select({}, scope.config.databases.participants);
+  if (dbret === null) return "`err db bad response`";
+  return ordinalise(dbret.sort((a, b) => b.pushups - a.pushups).sort((a, b) => b.pushups - a.pushups).findIndex(v => Participant.getID(v) === participant.getID()) + 1);
 }
 
 function getJoshRank(participant, scope) {
-  return rankList[scope.db.select("*", scope.config.databases.participants).sort((a, b) => a.userid - b.userid).findIndex(v => Participant.getID(v) === participant.getID())];
+  var dbret = scope.db.select({}, scope.config.databases.participants);
+  if (dbret === null) return "`err db bad response`";
+  return rankList[dbret.sort((a, b) => a.userid - b.userid).findIndex(v => Participant.getID(v) === participant.getID())];
 }
 
 function ordinalise(n) { return n + ([,'st','nd','rd'][n / 10 % 10^1 && n % 10] || 'th'); }

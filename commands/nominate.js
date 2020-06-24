@@ -19,31 +19,32 @@ module.exports = function (execObj, scope) {
 
   // get stats 'n' stuff
   var pNominator = new Participant(nominator), pNominee = new Participant(nominee);
-  var stats = util.mapArrayToObject(scope.db.select("*", scope.config.databases.participants, [pNominator.getID(), pNominee.getID()], 2).map(v => new Participant(v)), o => o.getID());
+  var dbret = scope.db.select({ _id: { $in: [pNominator.getID(), pNominee.getID()] } }, scope.config.databases.participants);
+  if (dbret === null) return "(when getting stats): `err db bad response`";
+  var stats = util.mapArrayToObject(dbret.map(v => new Participant(v)), o => o.getID());
 
   // check db results, and add peeps if they don't exist
-  var inserted = [{ u: nominator, p: pNominator }, { u: nominee, p: pNominee }].reduce((r, v) => {
+  var dbfail = false;
+  [{ u: nominator, p: pNominator }, { u: nominee, p: pNominee }].forEach(v => {
     if (stats[v.p.getID()] === undefined) {
       if (scope.config.verbose) console.info(`Info: Inserting new participant '${v.u.displayName} (${v.u.id})' with id '${v.p.getID()}'`);
-      scope.db.insert({ [v.p.getID()]: v.p }, scope.config.databases.participants);
+      if (scope.db.basicInsertFailCheck(scope.db.insert(v.p, scope.config.databases.participants), 1)) dbfail = true;
       stats[v.p.getID()] = v.p;
-      return true;
     }
-    return r;
   });
+  if (dbfail) return "(when inserting new participants): `err db bad response`"; // TODO: better feedback
 
   // check that the nominator has enough points
-  if (stats[pNominator.getID()].points < 1) {
-    if (inserted) scope.db.save(scope.config.databases.participants);
-    return "`not enough points`"; // TODO: better feedback
-  }
+  if (stats[pNominator.getID()].points < 1) return "`not enough points`"; // TODO: better feedback
 
   // update stats
-  var newStats = util.objectMap(stats, v => new Participant(v));
+  var newStats = util.objectMap(stats, v => new Participant(v)), dbfail = false;
   newStats[pNominator.getID()].points--;
   newStats[pNominee.getID()].nominations++;
-  [pNominator.getID(), pNominee.getID()].forEach(el => scope.db.update(newStats[el], scope.config.databases.participants, v => v.userid === el));
-  scope.db.save(scope.config.databases.participants);
+  [pNominator.getID(), pNominee.getID()].forEach(el => {
+    if (scope.db.basicUpdateFailCheck(scope.db.update({ _id: el }, newStats[el], scope.config.databases.participants), 1)) dbfail = true;
+  });
+  if (dbfail) return "(when updating participants): `err db bad response`"; // TODO: better feedback
   
   var nominatorStatsText = `${nominator.displayName}: ${stats[pNominator.getID()].points} -> ${newStats[pNominator.getID()].points} points`;
   var nomineeStatsText = `${nominee.displayName}: ${stats[pNominee.getID()].nominations} -> ${newStats[pNominee.getID()].nominations} nominations`;

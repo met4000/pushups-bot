@@ -9,7 +9,7 @@ const Moderator = require("./classes/Moderator");
 const commandSession = require("./commands/commandSession");
 
 const config = require("./config.json");
-const _config = require("./_config.json");
+const _config = process.env.HEROKU ? process.env : require("./_config.json");
 
 function generateScope() {
   return { db: db, cachedChannels: cachedChannels, config: config };
@@ -37,14 +37,12 @@ util.info(suffix => `Load${suffix} commands`, () => {
   util.info(suffix => `Load${suffix} direct commands`, () => commandLoader.load(commands.direct, require("./commands/direct")), false);
 });
 
-// util.info("DB startup", () => {
-{
+util.info("DB startup", () => {
   var dblist = [config.databases.moderators, config.databases.participants, config.databases.submissions];
-  db.init();
+  db.init(_config.mongodb_un, _config.mongodb_pw);
   if (config.backup) db.backup(dblist);
   db.load(dblist);
-}
-// });
+});
 
 
 // Discord Behaviours
@@ -117,7 +115,11 @@ function commandSessionCommandHandler(msg, cs, commandSource) {
 }
 
 function commandHandler(msg, processed, command, replyFunc) {
-  if (command.moderatorOnly) if (db.select("*", config.databases.moderators, v => new Moderator(v).userid === new Moderator({ userid: msg.author.id }).userid, 1).length === 0) return;
+  if (command.moderatorOnly) {
+    var dbret = db.select({ _id: new Moderator({ ...msg.author, userid: msg.author.id }).getID() }, config.databases.moderators, true);
+    // ! TODO: ERROR HANDLING
+    if (dbret === null) return;
+  }
   
   msg.channel.startTyping();
   var ret = command.exec({ args: processed.args, msg: msg, commandName: command.name }, generateScope());

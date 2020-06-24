@@ -17,7 +17,9 @@
   },
   "homepage": "https://github.com/met4000/pushups-bot#readme",
   "dependencies": {
+    "deasync": "^0.1.20",
     "deasync-promise": "^1.0.1",
-    "discord.js": "^12.2.0"
+    "discord.js": "^12.2.0",
+    "mongodb": "^3.5.9"
   }
 }
