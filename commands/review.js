@@ -50,8 +50,8 @@ function c_session(execObj, cs, scope) {
         return c_session(execObj, cs, scope);
       }
 
-      var dbret = scope.db.select("*", scope.config.databases.submissions, v => v.approved === null, 1)[0];
-      if (dbret !== undefined) {
+      var dbret = scope.db.select({ approved: null }, scope.config.databases.submissions, true);
+      if (dbret !== null) {
         cs.data = dbret;
         data.display = dbret;
         data.commands = {
@@ -60,7 +60,7 @@ function c_session(execObj, cs, scope) {
         };
         data.after = `( ${dbret.url} )`;
       } else {
-        data.display = "There are no new submissions :)";
+        data.display = ["There are no new submissions (or the database is broken)", ":)"];
       }
       break;
      
@@ -68,11 +68,9 @@ function c_session(execObj, cs, scope) {
       var dbret = util.deRef(cs.data);
       cs.data = {};
 
-      scope.db.update({ approved: true }, scope.config.databases.submissions, Submission.getID(dbret));
-      scope.db.update({ pushups: v => v + dbret.claim }, scope.config.databases.participants, Participant.getID(dbret));
-      
+      if (scope.db.basicUpdateFailCheck(scope.db.update({ _id: Submission.getID(dbret) }, { approved: true }, scope.config.databases.submissions), 1)) return "(when updating submissions): `err db bad response`";
+      if (scope.db.basicUpdateFailCheck(scope.db.update({ _id: Participant.getID({ ...dbret, _id: undefined }) }, { $inc: { pushups: dbret.claim } }, scope.config.databases.participants, true), 1)) return "(when updating participants): `err db bad response`";
       dbret.approved = true;
-      scope.db.save([scope.config.databases.participants, scope.config.databases.submissions]);
 
       global.client.users.fetch(dbret.userid).then(user => user.send(`\`submission '${Submission.getID(dbret)}' (+${dbret.claim}) accepted\``)); // TODO: better feedback
       
@@ -85,10 +83,8 @@ function c_session(execObj, cs, scope) {
       var dbret = util.deRef(cs.data);
       cs.data = {};
 
-      scope.db.update({ approved: false }, scope.config.databases.submissions, Submission.getID(dbret));
-
+      if (scope.db.basicUpdateFailCheck(scope.db.update({ _id: Submission.getID(dbret) }, { approved: false }, scope.config.databases.submissions), 1)) return "(when updating submissions): `err db bad response`";
       dbret.approved = false;
-      scope.db.save(scope.config.databases.submissions);
 
       global.client.users.fetch(dbret.userid).then(user => user.send(`\`submission '${Submission.getID(dbret)}' (+${dbret.claim}) denied\``)); // TODO: better feedback
 
