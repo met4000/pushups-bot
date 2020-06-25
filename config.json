@@ -11,6 +11,10 @@
     "submissions": "submissions"
   },
   "commands": {
+    "help": {
+      "width": 64,
+      "commandNameWidth": 16
+    },
     "points": {
       "headerWidth": 36,
       "joshRank": true,
