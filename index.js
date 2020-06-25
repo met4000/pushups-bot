@@ -40,7 +40,7 @@ util.info(suffix => `Load${suffix} commands`, () => {
 
 util.info("DB startup", () => {
   var dblist = [config.databases.moderators, config.databases.participants, config.databases.submissions];
-  db.init(_config.mongodb_un, _config.mongodb_pw);
+  db.init(_config.mongodb_un, _config.mongodb_pw, _config.debug);
   if (config.backup) db.backup(dblist);
   db.load(dblist);
 });
@@ -49,7 +49,7 @@ util.info("DB startup", () => {
 // Discord Behaviours
 client.on("ready", () => {
   console.info(`Info: Discord connected. Logged in as ${client.user.tag}.`);
-  
+
   commandRegexp = new RegExp(`^(?:${client.user.username}|${client.user.username[0]})${config.prefix}([^ ]+)(?: (.*))?$`);
   
   console.info("Info: Async fetching channels...");
@@ -60,6 +60,8 @@ client.on("ready", () => {
       console.info(`Info: Fetched '${v.id}' (${v.name})`);
     });
   });
+
+  client.user.setStatus(_config.debug ? "dnd" : "online");
 });
 
 client.on("error", e => {
