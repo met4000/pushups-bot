@@ -1,5 +1,6 @@
 module.exports = {
   load: load,
+  getByName: getByName
 };
 
 function load(target, obj, verbose = true) {
@@ -14,3 +15,5 @@ function load(target, obj, verbose = true) {
 
   return target;
 }
+
+function getByName(source, name) { return source[name]; }

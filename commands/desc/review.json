@@ -1,0 +1,11 @@
+{
+  "$schema": "./description.schema.json",
+  "short": "Review stuff (e.g. submissions)",
+  "specific": {
+    "call": "p!review",
+    "long": [
+      "Starts a new Command Session for reviewing various things, in particular pending submissions.",
+      "Further input can be provided by using the commands displayed during the command session."
+    ]
+  }
+}

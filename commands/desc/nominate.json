@@ -1,0 +1,13 @@
+{
+  "$schema": "./description.schema.json",
+  "short": "Use a point to nominate someone",
+  "specific": {
+    "call": "p!nominate user_mention",
+    "parameters": [
+      {
+        "parameter": "user_mention",
+        "description": "The user to nominate. (Must be a discord mention e.g. `@Josh V`)"
+      }
+    ]
+  }
+}

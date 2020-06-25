@@ -13,7 +13,8 @@
   "commands": {
     "help": {
       "width": 64,
-      "commandNameWidth": 16
+      "commandNameWidth": 16,
+      "commandParamWidth": 16
     },
     "points": {
       "headerWidth": 36,
