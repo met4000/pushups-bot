@@ -1,0 +1,19 @@
+{
+  "$schema": "./description.schema.json",
+  "short": "Creates a new pushup video submission",
+  "specific": {
+    "call": "p!submit claim_amount [video_url]",
+    "parameters": [
+      {
+        "parameter": "claim_amount",
+        "description": "The number of pushups to claimed to be in the video."
+      },
+      {
+        "parameter": "video_url",
+        "description": "The URL of the video. If not present, the video must be attached to the message.",
+        "optional": true
+      }
+    ],
+    "long": "The order of parameters in this command do not matter. Creates a new submission with the provided claim and url for a moderator to approve."
+  }
+}

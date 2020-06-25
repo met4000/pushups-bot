@@ -1,8 +1,8 @@
 const Command = require("./Command");
 
 module.exports = {
-  submit: new Command("submit", ["submit", "s", "video", "v"], require("./submit")),
-  quota: new Command("quota", []), // TODO
+  submit: new Command({ name: "submit", aliasList: ["submit", "s", "video", "v"] }),
+  quota: new Command({ name: "quota", aliasList: [], exec: () => {} }), // TODO
   
-  review: new Command("review", ["review", "r"], require("./review"), true),
+  review: new Command({ name: "review", aliasList: ["review", "r"], moderatorOnly: true }),
 };

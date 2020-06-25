@@ -42,9 +42,12 @@ function syncCall(t, f, args = [], failReturnType = null) {
   return result;
 }
 
-function init(un, pw) {
-  client = new MongoClient(`mongodb+srv://${un}:${pw}@cluster0-73obo.gcp.mongodb.net/main?retryWrites=true&w=majority`, { useNewUrlParser: true, useUnifiedTopology: true });
+function getCollectionName(isDebug) { return isDebug ? "debug" : "main"; }
+
+function init(un, pw, isDebug) {
+  client = new MongoClient(`mongodb+srv://${un}:${pw}@cluster0-73obo.gcp.mongodb.net/${getCollectionName(isDebug)}?retryWrites=true&w=majority`, { useNewUrlParser: true, useUnifiedTopology: true });
   syncCall(client, client.connect);
+  console.log(`Info: Connected to DB, collection '${getCollectionName(isDebug)}'`);
 }
 
 function close() {

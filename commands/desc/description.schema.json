@@ -1,0 +1,80 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Command Description",
+  "description": "A description of a command, for the purpose of being used by the `help` command",
+  "type": "object",
+  "properties": {
+    "$schema": { "type": "string" },
+    "short": {
+      "description": "The short description displayed during overviews of command groups",
+      "type": "string",
+      "pattern": "^.*$"
+    },
+    "specific": {
+      "description": "An object with more in-depth info on the command",
+      "type": "object",
+      "properties": {
+        "call": {
+          "description": "How to call the command, including all parameters",
+          "type": "string",
+          "minLength": 3
+        },
+        "parameters": {
+          "description": "A description of the effect of each parameter",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "parameter": {
+                "description": "The name of the parameter",
+                "type": "string",
+                "pattern": "^[^\\s]+$"
+              },
+              "description": {
+                "description": "The description of the parameter",
+                "type": "string"
+              },
+              "optional": {
+                "description": "If the parameter is optional",
+                "type": "boolean"
+              }
+            },
+            "required": ["parameter", "description"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "long": {
+          "description": "A more detailed description of the command and its behaviour",
+          "anyOf": [
+            { "type": "string" },
+            {
+              "type": "array",
+              "items": { "type": "string" },
+              "minItems": 1
+            }
+          ]
+        }
+      },
+      "anyOf": [
+        {
+          "not": {
+            "properties": {
+              "call": { "pattern": "^p!([^\\s]+)(?:\\s+(.+))+$" }
+            }
+          }
+        },
+        {
+          "properties": {
+            "call": { "pattern": "^p!([^\\s]+)(?:\\s+(.+))+$" }
+          },
+          "required": [ "parameters" ]
+        }
+      ],
+      "required": ["call"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["short", "specific"],
+  "additionalProperties": false
+}

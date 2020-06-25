@@ -12,14 +12,9 @@ const config = require("./config.json");
 var _config = process.env.HEROKU ? new Proxy(process.env, { get: (...args) => JSON.parse(Reflect.get(...args))}) : require("./_config.json");
 if (!Array.isArray(_config.channelIDs)) _config.channelIDs = [_config.channelIDs];
 
-function generateScope() {
-  return { db: db, cachedChannels: cachedChannels, config: config };
-}
-
 var cachedChannels = {};
 
-var commands = { channel: {}, direct: {} };
-function getCommandByName(source, name) { return source[name]; }
+var commands = { universal: {}, channel: {}, direct: {} };
 var commandRegexp;
 function processCommandString(str) {
   var processed = commandRegexp.exec(str);
@@ -27,20 +22,21 @@ function processCommandString(str) {
   return { command: processed[1], args: processed[2] ? processed[2].split(" ") : [] };
 }
 
+function generateScope() {
+  return { db: db, cachedChannels: cachedChannels, commandsObject: commands, config: config };
+}
+
 
 // Startup
 util.info(suffix => `Load${suffix} commands`, () => {
-  util.info(suffix => `Load${suffix} universal commands`, () => {
-    commandLoader.load(commands.channel, require("./commands/universal"));
-    commandLoader.load(commands.direct, require("./commands/universal"), false);
-  }, false);
+  util.info(suffix => `Load${suffix} universal commands`, () => commandLoader.load(commands.universal, require("./commands/universal")), false);
   util.info(suffix => `Load${suffix} channel commands`, () => commandLoader.load(commands.channel, require("./commands/channel")), false);
   util.info(suffix => `Load${suffix} direct commands`, () => commandLoader.load(commands.direct, require("./commands/direct")), false);
 });
 
 util.info("DB startup", () => {
   var dblist = [config.databases.moderators, config.databases.participants, config.databases.submissions];
-  db.init(_config.mongodb_un, _config.mongodb_pw);
+  db.init(_config.mongodb_un, _config.mongodb_pw, _config.debug);
   if (config.backup) db.backup(dblist);
   db.load(dblist);
 });
@@ -49,7 +45,7 @@ util.info("DB startup", () => {
 // Discord Behaviours
 client.on("ready", () => {
   console.info(`Info: Discord connected. Logged in as ${client.user.tag}.`);
-  
+
   commandRegexp = new RegExp(`^(?:${client.user.username}|${client.user.username[0]})${config.prefix}([^ ]+)(?: (.*))?$`);
   
   console.info("Info: Async fetching channels...");
@@ -60,6 +56,8 @@ client.on("ready", () => {
       console.info(`Info: Fetched '${v.id}' (${v.name})`);
     });
   });
+
+  client.user.setStatus(_config.debug ? "dnd" : "online");
 });
 
 client.on("error", e => {
@@ -94,17 +92,17 @@ function logMessageVerbose(type, msg, data) {
 };
 
 function commandSessionChannelHandler(msg, cs) {
-  return commandSessionCommandHandler(msg, cs, commands.channel);
+  return commandSessionCommandHandler(msg, cs, { ...commands.channel, ...commands.universal });
 }
 
 function commandSessionDirectHandler(msg, cs) {
-  return commandSessionCommandHandler(msg, cs, commands.direct);
+  return commandSessionCommandHandler(msg, cs, { ...commands.direct, ...commands.universal });
 }
 
 function commandSessionCommandHandler(msg, cs, commandSource) {
   if (config.verbose) logMessageVerbose("c_session", msg, msg.content);
 
-  var command = getCommandByName(commandSource, cs.commandName); // could probs move this to CommandSession constructor, but eh
+  var command = commandLoader.getByName(commandSource, cs.commandName); // could probs move this to CommandSession constructor, but eh
   
   cs.message.channel.startTyping();
   var ret = command.exec({ args: msg.content.split(" "), msg: msg, cs: cs }, generateScope());
@@ -116,12 +114,8 @@ function commandSessionCommandHandler(msg, cs, commandSource) {
 }
 
 function commandHandler(msg, processed, command, replyFunc) {
-  if (command.moderatorOnly) {
-    var dbret = db.select({ _id: new Moderator({ ...msg.author, userid: msg.author.id }).getID() }, config.databases.moderators, true);
-    // ! TODO: ERROR HANDLING
-    if (dbret === null) return;
-  }
-  
+  if (command.moderatorOnly) if (!(new Moderator({ ...msg.author, userid: msg.author.id }).isModerator({ db: db, config: config }))) return;
+
   msg.channel.startTyping();
   var ret = command.exec({ args: processed.args, msg: msg, commandName: command.name }, generateScope());
   if (ret === undefined) ret = {};
@@ -136,7 +130,7 @@ function channelmsg(msg, processed) {
   
   if (config.verbose) logMessageVerbose("channel", msg, processed);
 
-  var command = getCommandByName(commands.channel, processed.command);
+  var command = commandLoader.getByName({ ...commands.channel, ...commands.universal }, processed.command);
   if (command === undefined) { return; } // TODO
 
   return commandHandler(msg, processed, command, v => msg.reply(v));
@@ -147,7 +141,7 @@ function directmsg(msg, processed) {
 
   if (config.verbose) logMessageVerbose("direct", msg, processed);
 
-  var command = getCommandByName(commands.direct, processed.command);
+  var command = commandLoader.getByName({ ...commands.direct, ...commands.universal }, processed.command);
   if (command === undefined) { return; } // TODO
 
   return commandHandler(msg, processed, command, v => msg.channel.send(v));

@@ -1,0 +1,7 @@
+{
+  "$schema": "./description.schema.json",
+  "short": "Provides a display of your current points (and other stats)",
+  "specific": {
+    "call": "p!points"
+  }
+}

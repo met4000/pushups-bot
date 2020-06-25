@@ -1,0 +1,15 @@
+{
+  "$schema": "./description.schema.json",
+  "short": "Provides information about commands and their usage",
+  "specific": {
+    "call": "p!help [command]",
+    "parameters": [
+      {
+        "parameter": "command",
+        "description": "The name of the command to generate the help message for.",
+        "optional": true
+      }
+    ],
+    "long": "If `command` is not specified, this command will generate a list of all available commands and a short description of them. If `command` is specified, this command will generate a more in-depth description of the specified command (such as this current description of the `help` command)."
+  }
+}

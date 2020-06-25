@@ -1,6 +1,7 @@
 module.exports = class Command {
-  constructor(name, aliasList, exec, moderatorOnly = false) {
+  constructor({ name, description = safeRequire(`./desc/${name}`), aliasList, exec = safeRequire(`./${name}`), moderatorOnly = false }) {
     this._name = name;
+    this._description = description;
     if (!Array.isArray(aliasList)) aliasList = [aliasList];
     this._aliasList = aliasList;
     this._exec = exec;
@@ -8,6 +9,7 @@ module.exports = class Command {
   }
   
   get name() { return this._name; }
+  get description() { return this._description; }
   get aliasList() { return this._aliasList; }
   get moderatorOnly() { return this._moderatorOnly; }
   
@@ -48,3 +50,11 @@ module.exports = class Command {
     return ret;
   }
 };
+
+function safeRequire(file, failReturnValue = undefined) {
+  var ret = failReturnValue;
+  try {
+    ret = require(file);
+  } catch (err) { console.warn(`Failed to load '${file}': returning '${failReturnValue}'`); }
+  return ret;
+}

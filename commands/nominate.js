@@ -14,6 +14,9 @@ module.exports = function (execObj, scope) {
   if (nominee === undefined) return "`user not in channel`"; // TODO: better feedback
   var nominator = execObj.msg.channel.members.get(execObj.msg.author.id); // GuildMember object, assuming in the channel, which they kinda should be to have sent a message there...
 
+  // check they're not trying to nominate a bot
+  if (nominee.user.bot) return "`cannot nominate bot`"; // TODO: better feedback
+
   // check that they're not trying to nominate themselves
   if (nominator.id === nominee.id) return "`cannot nominate yourself`"; // TODO: better feedback
 
