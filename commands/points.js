@@ -45,7 +45,7 @@ module.exports = function (execObj, scope) {
     "userid": JSON.stringify(pUser.userid),
     "rank": scope.config.commands.points.joshRank ? getJoshRank(pUser, scope) : getRank(pUser, scope),
     "current points": pUser.points,
-    "nominations": pUser.nominations,
+    "nominations": pUser.nominations - pUser.points, // because... don't complain
     "spare pushups": pUser.spare
   })) {
     ret += `${key}:`.padEnd(scope.config.commands.points.keyWidth) + value + "\n";
