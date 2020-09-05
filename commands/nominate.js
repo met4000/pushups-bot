@@ -43,6 +43,7 @@ module.exports = function (execObj, scope) {
   // update stats
   var newStats = util.objectMap(stats, v => new Participant(v)), dbfail = false;
   newStats[pNominator.getID()].points--;
+  newStats[pNominator.getID()].nominations--; // because nominations are now intrinsicly tied to points :)
   newStats[pNominee.getID()].nominations++;
   [pNominator.getID(), pNominee.getID()].forEach(el => {
     if (scope.db.basicUpdateFailCheck(scope.db.update({ _id: el }, newStats[el], scope.config.databases.participants), 1)) dbfail = true;
